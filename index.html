@@ -1,0 +1,2172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NEXUS ARENA — Premium Gaming Platform</title>
+<meta name="description" content="Nexus Arena — 10 original playable browser games with levels." />
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { color-scheme: dark; }
+  html, body { background:#07070b; margin:0; }
+  body { font-family: Inter, system-ui, sans-serif; color:#e5e7eb; -webkit-font-smoothing:antialiased; overflow-x:hidden; }
+  *, *::before, *::after { box-sizing: border-box; }
+
+  .glass { background: rgba(18,18,29,0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  .grad-text { background: linear-gradient(90deg,#a855f7,#22d3ee); -webkit-background-clip:text; background-clip:text; color:transparent; }
+
+  .card-hover { transition: transform .3s cubic-bezier(.2,.8,.2,1), box-shadow .3s; }
+  .card-hover:hover { transform: translateY(-5px); box-shadow: 0 20px 40px -20px rgba(168,85,247,0.55); }
+
+  .fade-in { animation: fadeIn .4s ease both; }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform:none; } }
+
+  .skeleton { background: linear-gradient(90deg,#1a1a29 25%,#242438 50%,#1a1a29 75%); background-size: 200% 100%; animation: skel 1.4s infinite; }
+  @keyframes skel { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+  .nav-link.active { color:#fff; }
+  .nav-link.active::after { content:''; position:absolute; left:0; right:0; bottom:-6px; height:2px; background:linear-gradient(90deg,#a855f7,#22d3ee); border-radius:2px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+  }
+
+  /* ═════ GAME CONTAINER ═════ */
+  .game-shell {
+    background: linear-gradient(160deg, #12121d 0%, #0c0c14 100%);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 20px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .game-shell::before {
+    content:''; position:absolute; inset:-1px; border-radius:20px;
+    background: linear-gradient(135deg, rgba(168,85,247,0.35), rgba(34,211,238,0.25));
+    padding:1px; -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  #gameArea {
+    position: relative;
+    width: 100%;
+    min-height: 260px;
+    aspect-ratio: 4 / 3;
+    max-height: 70vh;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #0c0c14;
+  }
+  @media (max-width: 480px) {
+    #gameArea { aspect-ratio: 1 / 1; min-height: 240px; }
+  }
+  #cv { display:block; width:100%; height:100%; touch-action: none; user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; }
+
+  /* ═════ OVERLAY ═════ */
+  .overlay {
+    position:absolute; inset:0; display:grid; place-items:center;
+    background: radial-gradient(circle at center, rgba(12,12,20,0.85), rgba(7,7,11,0.95));
+    backdrop-filter: blur(6px);
+    padding: 16px; text-align:center;
+    transition: opacity .3s;
+  }
+  .overlay.hide { display:none; }
+
+  .btn-primary {
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    padding: 12px 22px; border-radius: 12px;
+    background: linear-gradient(90deg,#a855f7,#22d3ee);
+    color:#fff; font-weight:600; font-size:14px;
+    box-shadow: 0 0 30px -8px rgba(168,85,247,0.6);
+    transition: transform .2s;
+    border: none; cursor: pointer;
+  }
+  .btn-primary:hover { transform: scale(1.04); }
+  .btn-secondary {
+    display:inline-flex; align-items:center; justify-content:center;
+    padding: 10px 16px; border-radius: 10px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color:#fff; font-size:13px; font-weight:500;
+    cursor: pointer; transition: background .2s;
+  }
+  .btn-secondary:hover { background: rgba(255,255,255,0.1); }
+
+  /* HUD */
+  .hud-bar {
+    display:flex; align-items:center; justify-content:space-between;
+    gap:8px; flex-wrap:wrap;
+    margin-bottom: 12px; padding: 8px 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    font-size: 13px;
+  }
+  .hud-chip {
+    display:inline-flex; align-items:center; gap:6px;
+    padding: 4px 10px; border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .hud-chip .lbl { color:#9ca3af; font-size:11px; text-transform:uppercase; letter-spacing:.5px; }
+  .hud-chip .val { font-family:'Space Grotesk',sans-serif; font-weight:700; }
+
+  /* Level progress dots */
+  .lvl-dots { display:flex; gap:3px; margin-top:6px; }
+  .lvl-dot { width:6px; height:6px; border-radius:50%; background: rgba(255,255,255,0.15); }
+  .lvl-dot.on { background: linear-gradient(90deg,#a855f7,#22d3ee); box-shadow:0 0 8px rgba(168,85,247,0.7); }
+
+  /* Level flash animation */
+  .level-flash {
+    position:absolute; inset:0; display:grid; place-items:center;
+    pointer-events:none; z-index:5;
+    animation: lvlFlash 1.4s ease forwards;
+  }
+  @keyframes lvlFlash {
+    0% { opacity:0; transform: scale(0.6); }
+    20% { opacity:1; transform: scale(1); }
+    70% { opacity:1; transform: scale(1); }
+    100% { opacity:0; transform: scale(1.3); }
+  }
+  .level-flash-text {
+    font-family:'Space Grotesk',sans-serif; font-weight:700;
+    font-size: clamp(28px, 8vw, 56px);
+    background: linear-gradient(90deg,#a855f7,#22d3ee);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    text-shadow: 0 0 40px rgba(168,85,247,0.5);
+  }
+
+  .err { display:none; background: linear-gradient(90deg,#7f1d1d,#991b1b); color:#fff; padding:10px 14px; text-align:center; font-size:13px; border-radius:10px; margin-bottom:10px; }
+
+  kbd { padding: 2px 6px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; font-size: 11px; font-family: ui-monospace, monospace; }
+
+  /* Arcade tile */
+  .tile-icon { font-size: clamp(38px, 9vw, 54px); filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5)); }
+</style>
+</head>
+<body>
+
+<div id="globalErr" class="err fixed top-16 inset-x-4 z-[200]"></div>
+
+<!-- NAVBAR -->
+<header class="fixed top-0 inset-x-0 z-50 glass border-b border-white/5">
+  <nav class="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
+    <a href="#/" class="flex items-center gap-2.5">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-500 to-cyan-400 grid place-items-center" style="box-shadow:0 0 24px -6px rgba(168,85,247,0.7)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+      </div>
+      <span class="font-bold text-lg tracking-tight" style="font-family:'Space Grotesk',sans-serif">NEXUS<span class="grad-text">ARENA</span></span>
+    </a>
+
+    <ul class="hidden lg:flex items-center gap-7 text-sm font-medium" style="color:#9ca3af">
+      <li><a href="#/" class="nav-link relative hover:text-white transition" data-route="/">Home</a></li>
+      <li><a href="#/games" class="nav-link relative hover:text-white transition" data-route="/games">Games</a></li>
+      <li><a href="#/trending" class="nav-link relative hover:text-white transition" data-route="/trending">Trending</a></li>
+      <li><a href="#/new" class="nav-link relative hover:text-white transition" data-route="/new">New</a></li>
+      <li><a href="#/play" class="nav-link relative hover:text-white transition" data-route="/play">Arcade</a></li>
+      <li><a href="#/wishlist" class="nav-link relative hover:text-white transition" data-route="/wishlist">Wishlist</a></li>
+    </ul>
+
+    <div class="flex items-center gap-2">
+      <div class="hidden sm:block relative">
+        <input id="navSearch" type="text" placeholder="Search…" autocomplete="off"
+          class="w-36 md:w-48 border border-white/5 rounded-lg pl-9 pr-3 py-2 text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500/60 transition" style="background:#12121d" />
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      </div>
+      <a href="#/wishlist" class="relative p-2 rounded-lg hover:bg-white/5 transition" title="Wishlist">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+        <span id="wishCount" class="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-purple-500 text-[10px] font-bold grid place-items-center hidden">0</span>
+      </a>
+      <button id="menuBtn" class="lg:hidden p-2 rounded-lg hover:bg-white/5 transition" aria-label="Menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </nav>
+
+  <div id="mobileMenu" style="display:none; border-top:1px solid rgba(255,255,255,0.05); background:#0c0c14">
+    <ul class="px-4 py-4 space-y-1 text-sm">
+      <li><a href="#/" class="block px-3 py-2.5 rounded-lg hover:bg-white/5">Home</a></li>
+      <li><a href="#/games" class="block px-3 py-2.5 rounded-lg hover:bg-white/5">Games</a></li>
+      <li><a href="#/trending" class="block px-3 py-2.5 rounded-lg hover:bg-white/5">Trending</a></li>
+      <li><a href="#/new" class="block px-3 py-2.5 rounded-lg hover:bg-white/5">New Releases</a></li>
+      <li><a href="#/play" class="block px-3 py-2.5 rounded-lg hover:bg-white/5">Arcade</a></li>
+      <li><a href="#/wishlist" class="block px-3 py-2.5 rounded-lg hover:bg-white/5">Wishlist</a></li>
+    </ul>
+  </div>
+</header>
+
+<main id="app" class="pt-16" style="min-height:70vh"></main>
+
+<footer class="mt-20 border-t border-white/5" style="background:rgba(12,12,20,0.5)">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+    <div>
+      <div class="flex items-center gap-2 mb-3">
+        <div class="w-7 h-7 rounded-md bg-gradient-to-br from-purple-500 to-cyan-400 grid place-items-center">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+        </div>
+        <span class="font-bold" style="font-family:'Space Grotesk',sans-serif">NEXUS<span class="grad-text">ARENA</span></span>
+      </div>
+      <p class="text-gray-500 text-xs leading-relaxed">A frontend gaming platform with 10 original playable browser games. Progress saved to your device.</p>
+    </div>
+    <div>
+      <h4 class="font-semibold mb-3 text-white" style="font-family:'Space Grotesk',sans-serif">Discover</h4>
+      <ul class="space-y-2 text-gray-400">
+        <li><a href="#/games" class="hover:text-cyan-400 transition">Games Library</a></li>
+        <li><a href="#/trending" class="hover:text-cyan-400 transition">Trending</a></li>
+        <li><a href="#/new" class="hover:text-cyan-400 transition">New Releases</a></li>
+        <li><a href="#/play" class="hover:text-cyan-400 transition">Arcade</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4 class="font-semibold mb-3 text-white" style="font-family:'Space Grotesk',sans-serif">Account</h4>
+      <ul class="space-y-2 text-gray-400">
+        <li><a href="#/wishlist" class="hover:text-cyan-400 transition">Wishlist</a></li>
+        <li><a href="#/library" class="hover:text-cyan-400 transition">My Library</a></li>
+        <li><a href="#/about" class="hover:text-cyan-400 transition">About</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4 class="font-semibold mb-3 text-white" style="font-family:'Space Grotesk',sans-serif">Legal</h4>
+      <ul class="space-y-2 text-gray-400">
+        <li><a href="#/legal" class="hover:text-cyan-400 transition">Privacy &amp; Terms</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="border-t border-white/5 py-5 text-center text-xs text-gray-600">
+    © <span id="year"></span> Nexus Arena. Frontend demo — no server.
+  </div>
+</footer>
+
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] hidden">
+  <div class="glass border border-white/10 rounded-xl px-4 py-3 text-sm flex items-center gap-2" style="box-shadow:0 0 40px -10px rgba(168,85,247,0.55)">
+    <span id="toastIcon">✓</span><span id="toastMsg"></span>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   DATA
+   ══════════════════════════════════════════════════════════════════════ */
+const GAMES = [
+  { id:'g1', title:'Neon Drift', genre:'Racing', platforms:['PC','PS5','Xbox'], price:'Free', rating:4.6, release:'2025-03-14', trending:true, new:false, gradient:'from-fuchsia-500 to-cyan-500', desc:'A synthwave racer through neon-soaked megacities.', dev:'Vertex Labs', playable:false, arcadeId:null },
+  { id:'g2', title:'Void Sentinel', genre:'Action', platforms:['PC','PS5'], price:'$39.99', rating:4.8, release:'2025-01-22', trending:true, new:false, gradient:'from-purple-600 to-blue-600', desc:'Third-person action in a derelict space station.', dev:'Ironclad Studio', playable:false, arcadeId:null },
+  { id:'g3', title:'Aetherfall', genre:'RPG', platforms:['PC','Switch'], price:'$49.99', rating:4.9, release:'2024-11-08', trending:true, new:false, gradient:'from-indigo-500 to-purple-500', desc:'A hand-painted open-world RPG.', dev:'Moonveil Games', playable:false, arcadeId:null },
+  { id:'g4', title:'Pulse Arena', genre:'Multiplayer', platforms:['PC','PS5','Xbox'], price:'Free', rating:4.4, release:'2025-05-02', trending:true, new:true, gradient:'from-cyan-500 to-blue-500', desc:'Fast 5v5 arena shooter.', dev:'Nova Interactive', playable:false, arcadeId:null },
+  { id:'g5', title:'Cipher Lock', genre:'Puzzle', platforms:['Web'], price:'Free', rating:4.7, release:'2025-04-11', trending:false, new:true, gradient:'from-emerald-500 to-cyan-500', desc:'Sliding-tile logic puzzle.', dev:'Nexus Arena', playable:true, arcadeId:'puzzle15' },
+  { id:'g6', title:'Starlane Runner', genre:'Action', platforms:['Web'], price:'Free', rating:4.5, release:'2025-06-01', trending:true, new:true, gradient:'from-pink-500 to-purple-600', desc:'Endless neon runner.', dev:'Nexus Arena', playable:true, arcadeId:'runner' },
+  { id:'g7', title:'Terraform Tactics', genre:'Strategy', platforms:['PC'], price:'$29.99', rating:4.3, release:'2024-09-19', trending:false, new:false, gradient:'from-amber-500 to-orange-600', desc:'Turn-based colony building.', dev:'Redshift Studio', playable:false, arcadeId:null },
+  { id:'g8', title:'Skyward Bound', genre:'Adventure', platforms:['PS5','Switch'], price:'$34.99', rating:4.6, release:'2025-02-28', trending:false, new:false, gradient:'from-sky-400 to-indigo-500', desc:'A soaring exploration adventure.', dev:'Cloudpeak', playable:false, arcadeId:null },
+  { id:'g9', title:'Rift Wardens', genre:'RPG', platforms:['PC','Xbox'], price:'$44.99', rating:4.7, release:'2025-05-20', trending:false, new:true, gradient:'from-violet-600 to-fuchsia-500', desc:'Co-op action RPG.', dev:'Emberlight', playable:false, arcadeId:null },
+  { id:'g10', title:'Astro Sweeper', genre:'Arcade', platforms:['Web'], price:'Free', rating:4.4, release:'2025-06-10', trending:true, new:true, gradient:'from-yellow-500 to-orange-500', desc:'Classic minesweeper.', dev:'Nexus Arena', playable:true, arcadeId:'sweeper' },
+];
+
+const ARCADE = [
+  { id:'runner', name:'Starlane Runner', tag:'Endless Runner', icon:'🏃', gradient:'from-pink-500 to-purple-600', desc:'Jump over obstacles. Every level = faster.', maxLevel:20 },
+  { id:'puzzle15', name:'Cipher Lock', tag:'Slide Puzzle', icon:'🔢', gradient:'from-emerald-500 to-cyan-500', desc:'Order the tiles. Larger grids unlock.', maxLevel:8 },
+  { id:'sweeper', name:'Astro Sweeper', tag:'Minesweeper', icon:'💣', gradient:'from-yellow-500 to-orange-500', desc:'Clear the field. More mines each level.', maxLevel:10 },
+  { id:'snake', name:'Neon Snake', tag:'Snake', icon:'🐍', gradient:'from-lime-500 to-emerald-500', desc:'Eat, grow, survive. Speed climbs.', maxLevel:15 },
+  { id:'breakout', name:'Block Breaker', tag:'Breakout', icon:'🧱', gradient:'from-cyan-500 to-blue-600', desc:'Smash all bricks. Walls get denser.', maxLevel:12 },
+  { id:'flappy', name:'Jet Wings', tag:'Flappy', icon:'🚀', gradient:'from-sky-400 to-indigo-500', desc:'Fly through gaps. Narrower each level.', maxLevel:20 },
+  { id:'memory', name:'Neon Memory', tag:'Memory Match', icon:'🃏', gradient:'from-fuchsia-500 to-pink-500', desc:'Match pairs. Grids grow bigger.', maxLevel:8 },
+  { id:'tictac', name:'Tic Tac Toe', tag:'Strategy', icon:'⭕', gradient:'from-violet-600 to-fuchsia-500', desc:'Beat an AI that gets smarter.', maxLevel:10 },
+  { id:'pong', name:'Neon Pong', tag:'Pong', icon:'🏓', gradient:'from-purple-600 to-blue-600', desc:'Rally against faster AI.', maxLevel:12 },
+  { id:'simon', name:'Signal Simon', tag:'Memory', icon:'🎵', gradient:'from-rose-500 to-orange-500', desc:'Repeat longer sequences.', maxLevel:30 },
+];
+
+const LS = {
+  wishlist:'na_wishlist', library:'na_library',
+  best:'na_best_', level:'na_level_', unlocked:'na_unlocked_'
+};
+const safeParse = (k, def) => { try { return JSON.parse(localStorage.getItem(k) || def); } catch(e){ return JSON.parse(def); } };
+const safeSet   = (k, v) => { try { localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); } catch(e){} };
+
+const getList = k => safeParse(k, '[]');
+const setList = (k, v) => { safeSet(k, v); updateWishBadge(); };
+const inList  = (k, id) => getList(k).includes(id);
+const toggleList = (k, id) => {
+  const cur = getList(k); const i = cur.indexOf(id);
+  if (i >= 0) cur.splice(i,1); else cur.push(id);
+  setList(k, cur); return i < 0;
+};
+
+const getBest  = id => parseInt(safeParse(LS.best + id, '0'), 10) || 0;
+const setBest  = (id, v) => { if (v > getBest(id)) safeSet(LS.best + id, String(v)); };
+const getLevel = id => parseInt(safeParse(LS.level + id, '1'), 10) || 1;
+const setLevel = (id, v) => safeSet(LS.level + id, String(Math.max(1, v)));
+const getUnlocked = id => parseInt(safeParse(LS.unlocked + id, '1'), 10) || 1;
+const setUnlocked = (id, v) => safeSet(LS.unlocked + id, String(Math.max(1, v)));
+
+function updateWishBadge(){
+  const n = getList(LS.wishlist).length;
+  const b = document.getElementById('wishCount');
+  if (!b) return;
+  b.textContent = n;
+  b.classList.toggle('hidden', n === 0);
+}
+
+function toast(msg, ok=true){
+  const t = document.getElementById('toast'); if (!t) return;
+  document.getElementById('toastMsg').textContent = msg;
+  document.getElementById('toastIcon').textContent = ok ? '✓' : '!';
+  document.getElementById('toastIcon').style.color = ok ? '#22d3ee' : '#f59e0b';
+  t.classList.remove('hidden');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.add('hidden'), 2200);
+}
+
+function showError(msg){
+  const b = document.getElementById('globalErr'); if (!b) return;
+  b.textContent = '⚠ ' + msg;
+  b.style.display = 'block';
+  clearTimeout(b._t);
+  b._t = setTimeout(() => { b.style.display = 'none'; }, 6000);
+}
+
+function esc(s=''){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function stars(r){
+  const full = Math.max(0, Math.min(5, Math.round(r)));
+  return `<span style="color:#fbbf24">${'★'.repeat(full)}<span style="color:#374151">${'★'.repeat(5-full)}</span></span>
+          <span style="color:#6b7280" class="text-xs ml-1">${Number(r).toFixed(1)}</span>`;
+}
+function priceBadge(p){
+  return p === 'Free'
+    ? `<span class="px-2 py-0.5 rounded-md text-[11px] font-semibold" style="background:rgba(16,185,129,0.15);color:#34d399">Free</span>`
+    : `<span class="px-2 py-0.5 rounded-md text-[11px] font-semibold" style="background:rgba(255,255,255,0.05);color:#d1d5db">${esc(p)}</span>`;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   CARDS
+   ══════════════════════════════════════════════════════════════════════ */
+function GameCard(g){
+  const wished = inList(LS.wishlist, g.id);
+  return `
+  <article class="card-hover relative rounded-2xl overflow-hidden" style="background:#12121d;border:1px solid rgba(255,255,255,0.05)">
+    <a href="#/game/${g.id}" class="block">
+      <div class="relative overflow-hidden bg-gradient-to-br ${g.gradient}" style="aspect-ratio:16/10">
+        <div class="absolute inset-0" style="background:radial-gradient(circle at 30% 20%, rgba(255,255,255,0.25), transparent 60%)"></div>
+        <div class="absolute inset-0" style="background:linear-gradient(to top, rgba(7,7,11,0.9), transparent)"></div>
+        <div class="absolute top-3 left-3 flex gap-1.5">
+          ${g.new ? '<span class="px-2 py-0.5 rounded-md text-[10px] font-bold" style="background:#22d3ee;color:#0c0c14">NEW</span>' : ''}
+          ${g.playable ? '<span class="px-2 py-0.5 rounded-md text-[10px] font-bold" style="background:#a855f7;color:#fff">PLAYABLE</span>' : ''}
+        </div>
+        <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+          <span class="text-[11px]" style="background:rgba(0,0,0,0.5);color:#d1d5db;padding:2px 8px;border-radius:4px">${esc(g.genre)}</span>
+          ${priceBadge(g.price)}
+        </div>
+      </div>
+    </a>
+    <div class="p-4">
+      <div class="flex items-start justify-between gap-2">
+        <div class="min-w-0">
+          <a href="#/game/${g.id}" class="font-semibold text-white truncate block" style="font-family:'Space Grotesk',sans-serif">${esc(g.title)}</a>
+          <div class="mt-1 text-xs">${stars(g.rating)}</div>
+        </div>
+        <button data-wish="${g.id}" aria-label="Wishlist" class="shrink-0 p-2 rounded-lg transition" style="${wished ? 'color:#a855f7;background:rgba(168,85,247,0.1)' : 'color:#6b7280'}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="${wished?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+        </button>
+      </div>
+      <div class="mt-2 flex flex-wrap gap-1">
+        ${g.platforms.map(p => `<span class="text-[10px] border rounded px-1.5 py-0.5" style="color:#6b7280;border-color:rgba(255,255,255,0.05)">${esc(p)}</span>`).join('')}
+      </div>
+    </div>
+  </article>`;
+}
+
+function ArcadeCard(a){
+  const best = getBest(a.id);
+  const unlocked = getUnlocked(a.id);
+  const dots = Math.min(unlocked, 10);
+  return `
+  <a href="#/play/${a.id}" class="card-hover block rounded-2xl overflow-hidden relative" style="background:#12121d;border:1px solid rgba(255,255,255,0.05)">
+    <div class="relative overflow-hidden bg-gradient-to-br ${a.gradient}" style="aspect-ratio:16/10">
+      <div class="absolute inset-0" style="background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.35), transparent 60%);opacity:0;transition:opacity .3s" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0'"></div>
+      <div class="absolute inset-0 grid place-items-center"><span class="tile-icon">${a.icon}</span></div>
+      <div class="absolute top-3 left-3 px-2 py-0.5 rounded-md text-[10px] font-bold text-white" style="background:rgba(0,0,0,0.55)">▶ PLAY</div>
+      <div class="absolute bottom-3 right-3 px-2 py-0.5 rounded-md text-[10px]" style="background:rgba(0,0,0,0.55);color:#e5e7eb">Best: ${best}</div>
+      <div class="absolute bottom-3 left-3 px-2 py-0.5 rounded-md text-[10px]" style="background:rgba(0,0,0,0.55);color:#22d3ee">Lv ${unlocked}</div>
+    </div>
+    <div class="p-3">
+      <div class="font-semibold text-white truncate text-sm" style="font-family:'Space Grotesk',sans-serif">${esc(a.name)}</div>
+      <div class="text-[11px] mt-0.5" style="color:#6b7280">${esc(a.tag)}</div>
+      <div class="lvl-dots">
+        ${Array.from({length: dots}).map(() => '<span class="lvl-dot on"></span>').join('')}
+      </div>
+    </div>
+  </a>`;
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-wish]'); if (!b) return;
+  const id = b.dataset.wish;
+  const added = toggleList(LS.wishlist, id);
+  const g = GAMES.find(x => x.id === id);
+  toast(added ? `Added "${g ? g.title : 'game'}" to wishlist` : `Removed from wishlist`);
+  if (location.hash.startsWith('#/wishlist')) render();
+  else {
+    b.style.color = added ? '#a855f7' : '#6b7280';
+    b.style.background = added ? 'rgba(168,85,247,0.1)' : '';
+    const svg = b.querySelector('svg'); if (svg) svg.setAttribute('fill', added ? 'currentColor' : 'none');
+  }
+});
+
+/* ══════════════════════════════════════════════════════════════════════
+   PAGES
+   ══════════════════════════════════════════════════════════════════════ */
+function pageHome(){
+  const featured = GAMES[2] || GAMES[0];
+  const trending = GAMES.filter(g => g.trending).slice(0,4);
+  const fresh    = GAMES.filter(g => g.new).slice(0,4);
+  return `
+  <section class="relative overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-br ${featured.gradient}" style="opacity:0.3"></div>
+    <div class="absolute inset-0" style="background:radial-gradient(circle at 20% 30%, rgba(168,85,247,0.35), transparent 55%), radial-gradient(circle at 80% 70%, rgba(34,211,238,0.25), transparent 55%)"></div>
+    <div class="absolute inset-0" style="background:linear-gradient(to top, #07070b, rgba(7,7,11,0.6), transparent)"></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 py-20 sm:py-28">
+      <div class="max-w-2xl fade-in">
+        <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#d1d5db">
+          <span class="w-1.5 h-1.5 rounded-full" style="background:#22d3ee"></span> 10 games · 100+ levels
+        </span>
+        <h1 class="mt-5 font-bold text-4xl sm:text-5xl lg:text-6xl leading-tight tracking-tight" style="font-family:'Space Grotesk',sans-serif">
+          Where worlds <span class="grad-text">collide</span>.
+        </h1>
+        <p class="mt-5 text-base sm:text-lg leading-relaxed" style="color:#d1d5db">
+          Discover premium games, build your wishlist, and dive into 10 original arcade titles with real levels — playable right in your browser.
+        </p>
+        <div class="mt-8 flex flex-wrap gap-3">
+          <a href="#/play" class="btn-primary">▶ Play Arcade</a>
+          <a href="#/games" class="btn-secondary">Explore Games</a>
+          <a href="#/trending" class="btn-secondary">Trending</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 mt-4">
+    <div class="flex items-end justify-between mb-6">
+      <div>
+        <h2 class="font-bold text-2xl sm:text-3xl" style="font-family:'Space Grotesk',sans-serif">Play now — free</h2>
+        <p class="text-sm mt-1" style="color:#6b7280">10 original games. Each with progressive levels.</p>
+      </div>
+      <a href="#/play" class="text-sm" style="color:#22d3ee">Open arcade →</a>
+    </div>
+    <div class="grid gap-4 grid-cols-2 lg:grid-cols-4 fade-in">
+      ${ARCADE.slice(0,4).map(ArcadeCard).join('')}
+    </div>
+  </section>
+
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 mt-16">
+    <div class="flex items-end justify-between mb-6">
+      <h2 class="font-bold text-2xl sm:text-3xl" style="font-family:'Space Grotesk',sans-serif">Trending now</h2>
+      <a href="#/trending" class="text-sm" style="color:#22d3ee">View all →</a>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 fade-in">${trending.map(GameCard).join('')}</div>
+  </section>
+
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 mt-16">
+    <div class="flex items-end justify-between mb-6">
+      <h2 class="font-bold text-2xl sm:text-3xl" style="font-family:'Space Grotesk',sans-serif">New releases</h2>
+      <a href="#/new" class="text-sm" style="color:#22d3ee">View all →</a>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 fade-in">${fresh.map(GameCard).join('')}</div>
+  </section>`;
+}
+
+function pageArcade(){
+  return `
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+    <header class="mb-8">
+      <h1 class="font-bold text-3xl sm:text-4xl" style="font-family:'Space Grotesk',sans-serif">Arcade</h1>
+      <p class="mt-2" style="color:#6b7280">10 original browser games. Each with progressive levels. Progress saved to your device.</p>
+    </header>
+    <div class="grid gap-4 grid-cols-2 lg:grid-cols-4 fade-in">
+      ${ARCADE.map(ArcadeCard).join('')}
+    </div>
+  </section>`;
+}
+
+function pageArcadeGame(id){
+  const a = ARCADE.find(x => x.id === id);
+  if (!a) return page404();
+  const unlocked = getUnlocked(a.id);
+  return `
+  <section class="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+    <nav class="text-xs mb-4" style="color:#9ca3af">
+      <a href="#/play" class="hover:text-white">Arcade</a> <span class="mx-1.5">/</span>
+      <span class="text-white">${esc(a.name)}</span>
+    </nav>
+
+    <header class="mb-5 flex items-start justify-between gap-4 flex-wrap">
+      <div>
+        <h1 class="font-bold text-2xl sm:text-4xl" style="font-family:'Space Grotesk',sans-serif">${a.icon} ${esc(a.name)}</h1>
+        <p class="mt-2 text-sm max-w-xl" style="color:#9ca3af">${esc(a.desc)}</p>
+      </div>
+      <div class="text-right">
+        <div class="text-xs" style="color:#6b7280">Best</div>
+        <div class="font-bold text-2xl grad-text" style="font-family:'Space Grotesk',sans-serif">${getBest(a.id)}</div>
+      </div>
+    </header>
+
+    <div class="game-shell">
+      <div class="hud-bar">
+        <div class="flex gap-2 flex-wrap">
+          <div class="hud-chip"><span class="lbl">Level</span><span class="val" id="hudLevel" style="color:#22d3ee">${getLevel(a.id)}</span></div>
+          <div class="hud-chip"><span class="lbl">Score</span><span class="val" id="hudScore" style="color:#fff">0</span></div>
+          <div class="hud-chip"><span class="lbl">Best</span><span class="val" id="hudBest" style="color:#a855f7">${getBest(a.id)}</span></div>
+        </div>
+        <button id="restartBtn" class="btn-secondary">↻ Restart Level</button>
+      </div>
+
+      <div id="gameArea">
+        <canvas id="cv"></canvas>
+        <div id="overlay" class="overlay">
+          <div>
+            <div style="font-size:clamp(38px,10vw,64px);margin-bottom:8px">${a.icon}</div>
+            <h2 id="ovTitle" class="font-bold text-xl sm:text-2xl mb-2" style="font-family:'Space Grotesk',sans-serif">${esc(a.name)}</h2>
+            <p id="ovSub" class="text-sm mb-5 max-w-xs mx-auto" style="color:#9ca3af">${esc(a.desc)}</p>
+            <button id="startBtn" class="btn-primary">▶ Start Level ${unlocked}</button>
+            <div class="mt-4 flex gap-2 justify-center flex-wrap">
+              <button id="prevLvlBtn" class="btn-secondary" style="display:${unlocked > 1 ? 'inline-flex':'none'}">← Level ${Math.max(1,unlocked-1)}</button>
+            </div>
+          </div>
+        </div>
+        <div id="levelFlash"></div>
+      </div>
+
+      <div id="controls" class="mt-4 text-center text-xs" style="color:#6b7280"></div>
+    </div>
+
+    <div class="mt-5 flex flex-wrap gap-3">
+      <a href="#/play" class="btn-secondary">← All arcade games</a>
+    </div>
+  </section>`;
+}
+
+function pageGames(){
+  const genres = [...new Set(GAMES.map(g => g.genre))].sort();
+  return `
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+    <header class="mb-8">
+      <h1 class="font-bold text-3xl sm:text-4xl" style="font-family:'Space Grotesk',sans-serif">Games Library</h1>
+      <p class="mt-2" style="color:#6b7280">Search, filter, and sort the sample catalog.</p>
+    </header>
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+      <div class="relative sm:col-span-2">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2" style="color:#6b7280" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="fSearch" type="text" placeholder="Search titles…" class="w-full border border-white/5 rounded-xl pl-10 pr-3 py-3 text-sm" style="background:#12121d" />
+      </div>
+      <select id="fGenre" class="border border-white/5 rounded-xl px-3 py-3 text-sm" style="background:#12121d">
+        <option value="">All genres</option>${genres.map(x => `<option>${esc(x)}</option>`).join('')}
+      </select>
+      <select id="fSort" class="border border-white/5 rounded-xl px-3 py-3 text-sm" style="background:#12121d">
+        <option value="popular">Sort: Popular</option>
+        <option value="rating">Sort: Rating</option>
+        <option value="newest">Sort: Newest</option>
+        <option value="az">Sort: A → Z</option>
+      </select>
+    </div>
+    <div id="grid" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"></div>
+    <p id="empty" class="hidden text-center py-16" style="color:#6b7280">No games match your filters.</p>
+  </section>`;
+}
+
+function pageTrending(){
+  const list = GAMES.filter(g => g.trending);
+  return `
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+    <header class="mb-8">
+      <h1 class="font-bold text-3xl sm:text-4xl" style="font-family:'Space Grotesk',sans-serif">Trending Games</h1>
+      <p class="mt-2" style="color:#6b7280">Currently popular in the sample catalog.</p>
+    </header>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 fade-in">${list.map(GameCard).join('')}</div>
+  </section>`;
+}
+
+function pageNew(){
+  const list = GAMES.filter(g => g.new);
+  return `
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+    <header class="mb-8">
+      <h1 class="font-bold text-3xl sm:text-4xl" style="font-family:'Space Grotesk',sans-serif">New Releases</h1>
+    </header>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 fade-in">${list.map(GameCard).join('')}</div>
+  </section>`;
+}
+
+function pageWishlist(){
+  const ids = getList(LS.wishlist);
+  const list = GAMES.filter(g => ids.includes(g.id));
+  return `
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+    <header class="mb-8">
+      <h1 class="font-bold text-3xl sm:text-4xl" style="font-family:'Space Grotesk',sans-serif">Your Wishlist</h1>
+      <p class="mt-2" style="color:#6b7280">Saved in your browser's local storage.</p>
+    </header>
+    ${list.length
+      ? `<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 fade-in">${list.map(GameCard).join('')}</div>`
+      : `<div class="text-center py-20 rounded-2xl" style="border:1px dashed rgba(255,255,255,0.1)">
+           <p style="color:#6b7280">Your wishlist is empty.</p>
+           <a href="#/games" class="btn-primary mt-4 inline-flex">Browse games</a>
+         </div>`}
+  </section>`;
+}
+
+function pageLibrary(){
+  const ids = getList(LS.library);
+  const list = GAMES.filter(g => ids.includes(g.id));
+  return `
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+    <header class="mb-8">
+      <h1 class="font-bold text-3xl sm:text-4xl" style="font-family:'Space Grotesk',sans-serif">My Library</h1>
+    </header>
+    ${list.length
+      ? `<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 fade-in">${list.map(GameCard).join('')}</div>`
+      : `<div class="text-center py-20 rounded-2xl" style="border:1px dashed rgba(255,255,255,0.1)">
+           <p style="color:#6b7280">Library is empty.</p>
+           <a href="#/games" class="btn-primary mt-4 inline-flex">Browse games</a>
+         </div>`}
+  </section>`;
+}
+
+function pageGameDetail(id){
+  const g = GAMES.find(x => x.id === id);
+  if (!g) return page404();
+  const related = GAMES.filter(x => x.id !== g.id && x.genre === g.genre).slice(0,4);
+  const inLib = inList(LS.library, g.id);
+  const wished = inList(LS.wishlist, g.id);
+  const playLink = g.playable && g.arcadeId ? `#/play/${g.arcadeId}` : null;
+  return `
+  <section class="relative">
+    <div class="absolute inset-0" style="height:18rem;background:linear-gradient(to bottom right, var(--tw-gradient-stops))" class="bg-gradient-to-br ${g.gradient}" ></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 pt-16 pb-6">
+      <nav class="text-xs mb-6" style="color:#9ca3af">
+        <a href="#/" class="hover:text-white">Home</a> <span class="mx-1.5">/</span>
+        <a href="#/games" class="hover:text-white">Games</a> <span class="mx-1.5">/</span>
+        <span class="text-white">${esc(g.title)}</span>
+      </nav>
+      <h1 class="font-bold text-3xl sm:text-5xl" style="font-family:'Space Grotesk',sans-serif">${esc(g.title)}</h1>
+      <div class="mt-3 flex items-center gap-3 flex-wrap text-sm">${stars(g.rating)} <span style="color:#4b5563">•</span> <span style="color:#9ca3af">${esc(g.genre)}</span></div>
+      <div class="mt-5 flex gap-3 flex-wrap">
+        ${playLink ? `<a href="${playLink}" class="btn-primary">▶ Play Now</a>` : `<span class="btn-secondary" style="opacity:0.5;cursor:not-allowed">Requires launcher</span>`}
+        <button data-lib="${g.id}" class="btn-secondary">${inLib ? '✓ In Library' : '+ Add to Library'}</button>
+        <button data-wish="${g.id}" class="btn-secondary">${wished ? '♥ Wishlisted' : '♡ Wishlist'}</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 mt-8 grid gap-8 lg:grid-cols-3">
+    <div class="lg:col-span-2 space-y-6">
+      <div class="rounded-2xl overflow-hidden bg-gradient-to-br ${g.gradient}" style="aspect-ratio:16/9"></div>
+      <p style="color:#9ca3af;line-height:1.7">${esc(g.desc)}</p>
+    </div>
+    <aside class="rounded-2xl p-5" style="background:#12121d;border:1px solid rgba(255,255,255,0.05)">
+      <h3 class="font-semibold mb-4" style="font-family:'Space Grotesk',sans-serif">Details</h3>
+      <dl class="space-y-3 text-sm">
+        <div class="flex justify-between"><dt style="color:#6b7280">Release</dt><dd>${esc(g.release)}</dd></div>
+        <div class="flex justify-between"><dt style="color:#6b7280">Developer</dt><dd>${esc(g.dev)}</dd></div>
+        <div class="flex justify-between"><dt style="color:#6b7280">Genre</dt><dd>${esc(g.genre)}</dd></div>
+        <div class="flex justify-between"><dt style="color:#6b7280">Price</dt><dd>${esc(g.price)}</dd></div>
+      </dl>
+    </aside>
+  </section>
+  ${related.length ? `<section class="max-w-7xl mx-auto px-4 sm:px-6 mt-12">
+    <h2 class="font-bold text-2xl mb-6" style="font-family:'Space Grotesk',sans-serif">More ${esc(g.genre)} games</h2>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 fade-in">${related.map(GameCard).join('')}</div>
+  </section>` : ''}`;
+}
+
+function pageAbout(){
+  return `<section class="max-w-3xl mx-auto px-4 sm:px-6 py-16">
+    <h1 class="font-bold text-3xl sm:text-4xl mb-6" style="font-family:'Space Grotesk',sans-serif">About Nexus Arena</h1>
+    <p style="color:#9ca3af;line-height:1.7" class="mb-4">Single-file, frontend-only gaming platform with <strong class="text-white">10 original browser games</strong> — each with progressive levels. No install, no account, no server.</p>
+    <p style="color:#9ca3af;line-height:1.7"><strong class="text-white">Progress saved:</strong> best score and highest unlocked level per game, in your browser's localStorage.</p>
+  </section>`;
+}
+
+function pageLegal(){
+  return `<section class="max-w-3xl mx-auto px-4 sm:px-6 py-16">
+    <h1 class="font-bold text-3xl sm:text-4xl mb-6" style="font-family:'Space Grotesk',sans-serif">Privacy &amp; Terms</h1>
+    <p style="color:#9ca3af;line-height:1.7">This demo stores nothing on any server. Wishlist, library, best scores, and unlocked levels live only in your browser's <code style="color:#22d3ee">localStorage</code>.</p>
+  </section>`;
+}
+
+function page404(){
+  return `<section class="max-w-2xl mx-auto px-4 sm:px-6 py-24 text-center">
+    <div class="font-bold grad-text" style="font-size:5rem;font-family:'Space Grotesk',sans-serif">404</div>
+    <p class="mt-2" style="color:#6b7280">That route doesn't exist.</p>
+    <a href="#/" class="btn-primary mt-6 inline-flex">Back home</a>
+  </section>`;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   GAME ENGINE — shared helpers
+   ══════════════════════════════════════════════════════════════════════ */
+const $ = s => document.querySelector(s);
+
+function roundRect(ctx, x, y, w, h, r){
+  if (ctx.roundRect){ ctx.beginPath(); ctx.roundRect(x, y, w, h, r); return; }
+  ctx.beginPath();
+  ctx.moveTo(x+r, y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+
+function clearBg(ctx, W, H, hueShift=0){
+  const grd = ctx.createLinearGradient(0,0,0,H);
+  grd.addColorStop(0, `hsl(${250+hueShift}, 30%, 6%)`);
+  grd.addColorStop(1, `hsl(${250+hueShift}, 30%, 12%)`);
+  ctx.fillStyle = grd; ctx.fillRect(0,0,W,H);
+}
+
+function starfield(ctx, W, H, t){
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  for (let i = 0; i < 55; i++){
+    const x = ((i * 97 + (t/40)) % W);
+    const y = ((i * 53 + (i*7)) % H);
+    const s = 1 + (i % 3) * 0.5;
+    ctx.fillRect(x, y, s, s);
+  }
+}
+
+/* Central setup: builds a game runner bound to the arcade page */
+function setupGame({ id, name, init, draw, cleanupExtra, instructions }){
+  const cv = document.getElementById('cv');
+  const overlay = document.getElementById('overlay');
+  const ovTitle = document.getElementById('ovTitle');
+  const ovSub = document.getElementById('ovSub');
+  const startBtn = document.getElementById('startBtn');
+  const restartBtn = document.getElementById('restartBtn');
+  const prevBtn = document.getElementById('prevLvlBtn');
+  const controls = document.getElementById('controls');
+  const hudLevel = document.getElementById('hudLevel');
+  const hudScore = document.getElementById('hudScore');
+  const hudBest = document.getElementById('hudBest');
+  const levelFlash = document.getElementById('levelFlash');
+
+  if (!cv || !overlay || !startBtn){ showError('Game container missing'); return null; }
+
+  controls.innerHTML = instructions || '';
+
+  const ctx = cv.getContext('2d');
+  let W = 0, H = 0, dpr = 1;
+
+  function resize(){
+    const rect = cv.getBoundingClientRect();
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = Math.max(200, Math.round(rect.width));
+    H = Math.max(150, Math.round(rect.height));
+    cv.width = Math.round(W * dpr);
+    cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+
+  const state = {
+    running: false,
+    level: getLevel(id),
+    score: 0,
+    best: getBest(id),
+    hue: 0,
+    startedAt: 0,
+    raf: 0,
+    last: 0,
+    gameState: {},
+  };
+
+  // HUD update
+  function updateHud(){
+    if (hudLevel) hudLevel.textContent = state.level;
+    if (hudScore) hudScore.textContent = state.score;
+    if (hudBest) hudBest.textContent = state.best;
+  }
+
+  function flashLevel(n){
+    if (!levelFlash) return;
+    levelFlash.innerHTML = `<div class="level-flash"><div class="level-flash-text">Level ${n}</div></div>`;
+    setTimeout(() => { if (levelFlash) levelFlash.innerHTML = ''; }, 1400);
+  }
+
+  function resetForLevel(lv){
+    state.level = lv;
+    state.score = 0;
+    state.gameState = {};
+    state.hue = (lv * 30) % 360;
+    setLevel(id, lv);
+    if (init) init(state, { W, H });
+    updateHud();
+  }
+
+  function start(level){
+    resize();
+    resetForLevel(level || state.level);
+    overlay.classList.add('hide');
+    state.running = true;
+    state.startedAt = performance.now();
+    state.last = performance.now();
+    cancelAnimationFrame(state.raf);
+    state.raf = requestAnimationFrame(loop);
+  }
+
+  function stop(){
+    state.running = false;
+    cancelAnimationFrame(state.raf);
+  }
+
+  function loop(t){
+    const dt = Math.min((t - state.last) / 1000, 0.05);
+    state.last = t;
+    try { draw(ctx, W, H, dt, state, api); }
+    catch(err){ console.error('Draw error:', err); showError('Draw error: ' + err.message); stop(); return; }
+    if (state.running) state.raf = requestAnimationFrame(loop);
+  }
+
+  function gameOver(score, opts={}){
+    stop();
+    const final = Math.max(0, Math.floor(score));
+    if (final > state.best){ state.best = final; setBest(id, final); }
+    updateHud();
+
+    const won = opts.win;
+    if (won){
+      const next = state.level + 1;
+      const unlocked = Math.max(getUnlocked(id), next);
+      setUnlocked(id, unlocked);
+      if (next > state.level) setLevel(id, next);
+      ovTitle.textContent = `Level ${state.level} Clear!`;
+      ovSub.innerHTML = `Score: <span style="color:#22d3ee;font-weight:700">${final}</span> · Best: <span style="color:#a855f7;font-weight:700">${state.best}</span>`;
+      startBtn.textContent = `▶ Level ${next}`;
+      startBtn.onclick = () => { startBtn.onclick = null; startBtn.addEventListener('click', defaultStart); start(next); };
+    } else {
+      ovTitle.textContent = 'Game Over';
+      ovSub.innerHTML = `Score: <span style="color:#22d3ee;font-weight:700">${final}</span> · Level: <span style="color:#a855f7;font-weight:700">${state.level}</span> · Best: <span style="color:#a855f7;font-weight:700">${state.best}</span>`;
+      startBtn.textContent = `↻ Retry Level ${state.level}`;
+      startBtn.onclick = () => { startBtn.onclick = null; startBtn.addEventListener('click', defaultStart); start(state.level); };
+    }
+
+    // show prev-level button if applicable
+    if (prevBtn){
+      const unlocked = getUnlocked(id);
+      prevBtn.style.display = unlocked > 1 ? 'inline-flex' : 'none';
+      prevBtn.textContent = `← Level ${Math.max(1, state.level - 1)}`;
+      prevBtn.onclick = () => { if (state.level > 1) start(state.level - 1); };
+    }
+
+    overlay.classList.remove('hide');
+  }
+
+  function levelComplete(score){
+    if (state.level >= (ARCADE.find(x => x.id === id)?.maxLevel || 99)){
+      // Final level done — treat as win-the-game
+      gameOver(score + 500, { win: true });
+      return;
+    }
+    // Flash and go next
+    setUnlocked(id, Math.max(getUnlocked(id), state.level + 1));
+    stop();
+    const final = Math.max(0, Math.floor(score));
+    if (final > state.best){ state.best = final; setBest(id, final); }
+    flashLevel(state.level + 1);
+    setTimeout(() => {
+      if (!document.body.contains(cv)) return;
+      start(state.level + 1);
+    }, 1300);
+  }
+
+  function defaultStart(){
+    start(getUnlocked(id));
+  }
+
+  startBtn.addEventListener('click', defaultStart, { once: false });
+  // reset once-handlers
+  startBtn.onclick = null;
+
+  if (restartBtn){
+    restartBtn.addEventListener('click', () => {
+      overlay.classList.add('hide');
+      start(state.level);
+    });
+  }
+
+  const rHandler = () => { resize(); if (!state.running && init) init(state, { W, H }); };
+  window.addEventListener('resize', rHandler);
+
+  // First paint
+  requestAnimationFrame(() => {
+    resize();
+    // draw idle frame
+    try { draw(ctx, W, H, 0, state, api); } catch(e){ console.error(e); }
+    updateHud();
+  });
+
+  const api = {
+    get W(){ return W; },
+    get H(){ return H; },
+    ctx, cv,
+    state,
+    start, stop, gameOver, levelComplete, resetForLevel,
+    isRunning: () => state.running,
+    cleanup(){
+      stop();
+      window.removeEventListener('resize', rHandler);
+      if (cleanupExtra) cleanupExtra();
+    }
+  };
+
+  return api;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   GAME 1: STARLANE RUNNER — levels make speed & obstacle density climb
+   ══════════════════════════════════════════════════════════════════════ */
+function initRunner(){
+  let onKey, onTap;
+  const api = setupGame({
+    id:'runner', name:'Starlane Runner',
+    instructions:`Jump: <kbd>Space</kbd> <kbd>↑</kbd> <kbd>W</kbd> · Touch: tap canvas. Reach distance target to clear the level.`,
+    init(state, { W, H }){
+      const s = state.gameState;
+      s.h = H * 0.1;
+      s.y = H - H * 0.16 - s.h;
+      s.vy = 0;
+      s.onGround = true;
+      s.obs = [];
+      s.spawnT = 0.6;
+      s.speed = 320 + state.level * 40;
+      s.dist = 0;
+      s.target = 700 + state.level * 200;
+    },
+    draw(ctx, W, H, dt, state, api){
+      const s = state.gameState;
+      if (api.isRunning()){
+        s.vy += 2400 * dt;
+        s.y += s.vy * dt;
+        const gy = H - H * 0.16 - s.h;
+        if (s.y >= gy){ s.y = gy; s.vy = 0; s.onGround = true; }
+
+        s.speed += 10 * dt;
+        s.dist += s.speed * dt * 0.1;
+        state.score = Math.floor(s.dist);
+        const sc = document.getElementById('hudScore'); if (sc) sc.textContent = state.score;
+
+        s.spawnT -= dt;
+        if (s.spawnT <= 0){
+          s.obs.push({ x: W + 20, w: 22 + Math.random()*30, h: 30 + Math.random()*(H*0.18) });
+          s.spawnT = Math.max(0.5, 1.3 - state.level*0.05 - s.speed/900) + Math.random()*0.4;
+        }
+
+        const px = W * 0.16, pw = s.h * 0.9, gy2 = H - H*0.16;
+        for (let i = s.obs.length - 1; i >= 0; i--){
+          const o = s.obs[i];
+          o.x -= s.speed * dt;
+          if (o.x + o.w < 0){ s.obs.splice(i,1); continue; }
+          const oy = gy2 - o.h;
+          if (px < o.x + o.w && px + pw > o.x && s.y < oy + o.h && s.y + s.h > oy){
+            api.gameOver(state.score); return;
+          }
+        }
+
+        if (s.dist >= s.target){ api.levelComplete(state.score + 200); return; }
+      }
+
+      clearBg(ctx, W, H, state.hue);
+      starfield(ctx, W, H, performance.now() * (api.isRunning() ? s.speed/380 : 1));
+
+      // ground
+      ctx.fillStyle = 'rgba(15,15,25,0.9)';
+      ctx.fillRect(0, H - H*0.16, W, H*0.16);
+      ctx.fillStyle = `hsl(${270 + state.hue*0.3}, 90%, 60%)`;
+      ctx.fillRect(0, H - H*0.16, W, 2);
+
+      // progress bar at top
+      const pct = Math.min(1, s.dist / s.target);
+      ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fillRect(0, 0, W, 4);
+      ctx.fillStyle = '#22d3ee'; ctx.fillRect(0, 0, W * pct, 4);
+
+      // player
+      ctx.save();
+      ctx.shadowColor = '#22d3ee'; ctx.shadowBlur = 22; ctx.fillStyle = '#22d3ee';
+      roundRect(ctx, W*0.16, s.y, s.h*0.9, s.h, 6); ctx.fill();
+      ctx.restore();
+
+      // obstacles
+      ctx.save();
+      for (const o of s.obs){
+        ctx.shadowColor = '#a855f7'; ctx.shadowBlur = 16; ctx.fillStyle = '#a855f7';
+        roundRect(ctx, o.x, H - H*0.16 - o.h, o.w, o.h, 4); ctx.fill();
+      }
+      ctx.restore();
+    },
+    cleanupExtra(){
+      if (onKey) window.removeEventListener('keydown', onKey);
+      if (onTap) api.cv.removeEventListener('pointerdown', onTap);
+    }
+  });
+  if (!api) return null;
+
+  const jump = () => {
+    if (!api.isRunning()) return;
+    const s = api.state.gameState;
+    if (s.onGround){ s.vy = -900; s.onGround = false; }
+  };
+  onKey = e => { if (['Space','ArrowUp','KeyW'].includes(e.code)){ e.preventDefault(); jump(); } };
+  onTap = e => { e.preventDefault(); jump(); };
+  window.addEventListener('keydown', onKey);
+  api.cv.addEventListener('pointerdown', onTap);
+  return api;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   GAME 2: PUZZLE 15 — grid grows with level (3x3 → 4x4 → 5x5 capped)
+   ══════════════════════════════════════════════════════════════════════ */
+function initPuzzle(){
+  let onKey, onTap;
+  const api = setupGame({
+    id:'puzzle15', name:'Cipher Lock',
+    instructions:`Click / tap a tile next to the gap. Keyboard: <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>`,
+    init(state){
+      const s = state.gameState;
+      s.size = Math.min(3 + Math.floor((state.level - 1) / 2), 5);
+      const n = s.size * s.size;
+      const arr = Array.from({length:n}, (_,i) => i);
+      for (let i = arr.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      s.tiles = arr;
+      s.moves = 0;
+      s.target = s.size * s.size * 6;
+      state.score = 0;
+    },
+    draw(ctx, W, H, dt, state, api){
+      const s = state.gameState;
+      const size = Math.min(W, H) * 0.9;
+      const ox = (W - size) / 2, oy = (H - size) / 2;
+      const cw = size / s.size, ch = size / s.size;
+
+      clearBg(ctx, W, H, state.hue);
+      starfield(ctx, W, H, 0);
+
+      for (let i = 0; i < s.tiles.length; i++){
+        const v = s.tiles[i];
+        if (v === 0) continue;
+        const r = Math.floor(i / s.size), c = i % s.size;
+        const x = ox + c*cw, y = oy + r*ch;
+        const grad = ctx.createLinearGradient(x, y, x+cw, y+ch);
+        grad.addColorStop(0, `hsl(${(270 + state.hue + v * 8) % 360}, 90%, 62%)`);
+        grad.addColorStop(1, `hsl(${(200 + state.hue + v * 8) % 360}, 90%, 55%)`);
+        ctx.save(); ctx.shadowColor = 'rgba(168,85,247,0.6)'; ctx.shadowBlur = 18;
+        ctx.fillStyle = grad;
+        roundRect(ctx, x+4, y+4, cw-8, ch-8, 10); ctx.fill();
+        ctx.restore();
+        ctx.fillStyle = '#fff';
+        ctx.font = `bold ${Math.floor(ch*0.38)}px "Space Grotesk", system-ui`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(String(v), x + cw/2, y + ch/2 + 2);
+      }
+    },
+    cleanupExtra(){
+      if (onKey) window.removeEventListener('keydown', onKey);
+      if (onTap) api.cv.removeEventListener('pointerdown', onTap);
+    }
+  });
+  if (!api) return null;
+
+  function checkSolved(s){
+    for (let i = 0; i < s.tiles.length - 1; i++) if (s.tiles[i] !== i+1) return false;
+    return s.tiles[s.tiles.length - 1] === 0;
+  }
+  function tryMove(idx){
+    if (!api.isRunning()) return;
+    const s = api.state.gameState;
+    const bi = s.tiles.indexOf(0);
+    const br = Math.floor(bi/s.size), bc = bi%s.size;
+    const r = Math.floor(idx/s.size), c = idx%s.size;
+    if (Math.abs(br-r) + Math.abs(bc-c) !== 1) return;
+    [s.tiles[bi], s.tiles[idx]] = [s.tiles[idx], s.tiles[bi]];
+    s.moves++;
+    state_score_update();
+    if (checkSolved(s)) api.levelComplete(Math.max(0, 500 - s.moves * 5));
+  }
+  function state_score_update(){
+    const s = api.state.gameState;
+    api.state.score = Math.max(0, 500 - s.moves * 5);
+    const sc = document.getElementById('hudScore'); if (sc) sc.textContent = api.state.score;
+  }
+
+  onKey = e => {
+    if (!api.isRunning()) return;
+    const s = api.state.gameState;
+    const bi = s.tiles.indexOf(0);
+    const br = Math.floor(bi/s.size), bc = bi%s.size;
+    let tr = br, tc = bc;
+    if (e.code === 'ArrowUp')    tr = br + 1;
+    if (e.code === 'ArrowDown')  tr = br - 1;
+    if (e.code === 'ArrowLeft')  tc = bc + 1;
+    if (e.code === 'ArrowRight') tc = bc - 1;
+    if (tr >= 0 && tr < s.size && tc >= 0 && tc < s.size){ e.preventDefault(); tryMove(tr*s.size + tc); }
+  };
+  onTap = e => {
+    if (!api.isRunning()) return;
+    const s = api.state.gameState;
+    const r = api.cv.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio||1,2);
+    const x = (e.clientX - r.left) * (api.cv.width/r.width) / dpr;
+    const y = (e.clientY - r.top)  * (api.cv.height/r.height)/ dpr;
+    const size = Math.min(api.W, api.H) * 0.9;
+    const ox = (api.W - size) / 2, oy = (api.H - size) / 2;
+    const cw = size / s.size, ch = size / s.size;
+    if (x < ox || x > ox + size || y < oy || y > oy + size) return;
+    const c = Math.floor((x - ox) / cw);
+    const rr = Math.floor((y - oy) / ch);
+    tryMove(rr * s.size + c);
+  };
+  window.addEventListener('keydown', onKey);
+  api.cv.addEventListener('pointerdown', onTap);
+  return api;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   GAME 3: MINESWEEPER — more mines per level
+   ══════════════════════════════════════════════════════════════════════ */
+function initSweeper(){
+  let onCl, onCtx, onPD, onPU;
+  const api = setupGame({
+    id:'sweeper', name:'Astro Sweeper',
+    instructions:`Left-click / tap: reveal · Right-click / long-press: flag`,
+    init(state){
+      const s = state.gameState;
+      s.N = 9;
+      s.mines = Math.min(8 + state.level, 20);
+      s.grid = Array(s.N*s.N).fill(0);
+      s.revealed = Array(s.N*s.N).fill(false);
+      s.flagged = Array(s.N*s.N).fill(false);
+      s.dead = false; s.won = false; s.flagCount = 0; s.startedAt = 0;
+      let placed = 0;
+      while (placed < s.mines){
+        const i = Math.floor(Math.random() * s.N*s.N);
+        if (s.grid[i] === -1) continue;
+        s.grid[i] = -1; placed++;
+      }
+      for (let i = 0; i < s.N*s.N; i++){
+        if (s.grid[i] === -1) continue;
+        let c = 0;
+        for (const j of neighbors(i, s.N)) if (s.grid[j] === -1) c++;
+        s.grid[i] = c;
+      }
+      state.score = 0;
+    },
+    draw(ctx, W, H, dt, state, api){
+      const s = state.gameState;
+      clearBg(ctx, W, H, state.hue);
+      const size = Math.min(W, H) * 0.92;
+      const ox = (W - size)/2, oy = (H - size)/2;
+      const cs = size / s.N;
+
+      for (let i = 0; i < s.N*s.N; i++){
+        const r = Math.floor(i/s.N), c = i%s.N;
+        const x = ox + c*cs, y = oy + r*cs;
+        const rev = s.revealed[i];
+        const fl  = s.flagged[i];
+        ctx.fillStyle = rev ? (s.grid[i] === -1 ? 'rgba(127,29,29,0.85)' : 'rgba(15,15,25,0.95)') : 'rgba(36,36,56,1)';
+        roundRect(ctx, x+2, y+2, cs-4, cs-4, 6); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.stroke();
+
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        if (rev){
+          if (s.grid[i] === -1){
+            ctx.fillStyle = '#f87171'; ctx.font = `bold ${cs*0.55}px system-ui`;
+            ctx.fillText('💣', x+cs/2, y+cs/2+1);
+          } else if (s.grid[i] > 0){
+            const colors = ['','#22d3ee','#a855f7','#f472b6','#fb923c','#facc15','#a3e635','#f87171','#e5e7eb'];
+            ctx.fillStyle = colors[s.grid[i]]; ctx.font = `bold ${cs*0.55}px "Space Grotesk", system-ui`;
+            ctx.fillText(String(s.grid[i]), x+cs/2, y+cs/2+1);
+          }
+        } else if (fl){
+          ctx.fillStyle = '#22d3ee'; ctx.font = `${cs*0.5}px system-ui`;
+          ctx.fillText('🚩', x+cs/2, y+cs/2+1);
+        }
+      }
+    },
+    cleanupExtra(){
+      if (onCl) api.cv.removeEventListener('click', onCl);
+      if (onCtx) api.cv.removeEventListener('contextmenu', onCtx);
+      if (onPD) api.cv.removeEventListener('pointerdown', onPD);
+      if (onPU) api.cv.removeEventListener('pointerup', onPU);
+    }
+  });
+  if (!api) return null;
+
+  function neighbors(i, N){
+    const r = Math.floor(i/N), c = i%N, out = [];
+    for (let dr = -1; dr <= 1; dr++)
+      for (let dc = -1; dc <= 1; dc++){
+        if (!dr && !dc) continue;
+        const nr = r + dr, nc = c + dc;
+        if (nr >= 0 && nr < N && nc >= 0 && nc < N) out.push(nr*N + nc);
+      }
+    return out;
+  }
+
+  function revealFlood(s, i){
+    if (s.revealed[i] || s.flagged[i]) return;
+    s.revealed[i] = true;
+    if (s.grid[i] === 0) for (const j of neighbors(i, s.N)) revealFlood(s, j);
+  }
+
+  function checkWin(s){
+    for (let i = 0; i < s.N*s.N; i++) if (s.grid[i] !== -1 && !s.revealed[i]) return false;
+    return true;
+  }
+
+  function reveal(s, i){
+    if (s.dead || s.won || s.flagged[i] || s.revealed[i]) return;
+    if (!s.startedAt) s.startedAt = performance.now();
+    if (s.grid[i] === -1){
+      s.revealed[i] = true; s.dead = true;
+      for (let k = 0; k < s.N*s.N; k++) if (s.grid[k] === -1) s.revealed[k] = true;
+      api.gameOver(0); return;
+    }
+    revealFlood(s, i);
+    if (checkWin(s)){
+      s.won = true;
+      const score = 300 + state_level(api) * 100;
+      api.levelComplete(score);
+    }
+  }
+  function state_level(api){ return api.state.level; }
+
+  function toggleFlag(s, i){
+    if (s.dead || s.won || s.revealed[i]) return;
+    s.flagged[i] = !s.flagged[i];
+  }
+
+  function ptFromEvent(e){
+    const r = api.cv.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio||1,2);
+    return { x: (e.clientX - r.left) * (api.cv.width/r.width) / dpr,
+             y: (e.clientY - r.top)  * (api.cv.height/r.height) / dpr };
+  }
+  function cellFromPoint(x, y){
+    const s = api.state.gameState;
+    const size = Math.min(api.W, api.H) * 0.92;
+    const ox = (api.W - size) / 2, oy = (api.H - size) / 2;
+    const cs = size / s.N;
+    if (x < ox || x > ox + size || y < oy || y > oy + size) return -1;
+    return Math.floor((y - oy) / cs) * s.N + Math.floor((x - ox) / cs);
+  }
+
+  function handle(e, flag){
+    if (!api.isRunning()) return;
+    const p = ptFromEvent(e);
+    const i = cellFromPoint(p.x, p.y);
+    if (i < 0) return;
+    const s = api.state.gameState;
+    if (flag) toggleFlag(s, i); else reveal(s, i);
+  }
+
+  onCl  = e => { if (e.pointerType !== 'touch') handle(e, false); };
+  onCtx = e => { e.preventDefault(); handle(e, true); };
+  let lpTimer=null, lpFired=false;
+  onPD = e => {
+    if (e.pointerType === 'touch'){
+      lpFired = false;
+      lpTimer = setTimeout(() => { lpFired = true; handle(e, true); }, 450);
+    }
+  };
+  onPU = e => {
+    if (e.pointerType === 'touch'){
+      clearTimeout(lpTimer);
+      if (!lpFired) handle(e, false);
+    }
+  };
+
+  api.cv.addEventListener('click', onCl);
+  api.cv.addEventListener('contextmenu', onCtx);
+  api.cv.addEventListener('pointerdown', onPD);
+  api.cv.addEventListener('pointerup', onPU);
+  return api;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   GAME 4: SNAKE — speed climbs per level
+   ══════════════════════════════════════════════════════════════════════ */
+function initSnake(){
+  let onKey, onDown, onUp;
+  const api = setupGame({
+    id:'snake', name:'Neon Snake',
+    instructions:`Swipe or arrow keys to move. Eat 10 foods to clear the level.`,
+    init(state){
+      const s = state.gameState;
+      s.COLS = 20; s.ROWS = 15;
+      s.snake = [{x:9,y:7},{x:8,y:7},{x:7,y:7}];
+      s.dir = {x:1,y:0}; s.nextDir = s.dir;
+      s.food = randFood(s);
+      s.eaten = 0;
+      s.target = 10;
+      s.step = 0;
+      s.interval = Math.max(0.06, 0.14 - state.level * 0.008);
+      state.score = 0;
+    },
+    draw(ctx, W, H, dt, state, api){
+      const s = state.gameState;
+      if (api.isRunning()){
+        s.step += dt;
+        if (s.step >= s.interval){
+          s.step -= s.interval;
+          s.dir = s.nextDir;
+          const head = { x: s.snake[0].x + s.dir.x, y: s.snake[0].y + s.dir.y };
+          if (head.x < 0 || head.x >= s.COLS || head.y < 0 || head.y >= s.ROWS || s.snake.some(b => b.x===head.x && b.y===head.y)){
+            api.gameOver(state.score); return;
+          }
+          s.snake.unshift(head);
+          if (head.x === s.food.x && head.y === s.food.y){
+            state.score += 10;
+            s.eaten++;
+            const sc = document.getElementById('hudScore'); if (sc) sc.textContent = state.score;
+            if (s.eaten >= s.target){ api.levelComplete(state.score + 100); return; }
+            s.food = randFood(s);
+          } else s.snake.pop();
+        }
+      }
+
+      clearBg(ctx, W, H, state.hue);
+      const cell = Math.min(W*0.92/s.COLS, H*0.92/s.ROWS);
+      const ox = (W - cell*s.COLS)/2, oy = (H - cell*s.ROWS)/2;
+
+      // food
+      ctx.save(); ctx.shadowColor='#f472b6'; ctx.shadowBlur=18; ctx.fillStyle='#f472b6';
+      roundRect(ctx, ox+s.food.x*cell+3, oy+s.food.y*cell+3, cell-6, cell-6, cell*0.3); ctx.fill();
+      ctx.restore();
+
+      // snake
+      s.snake.forEach((seg, i) => {
+        const t = i / s.snake.length;
+        const grd = ctx.createLinearGradient(ox+seg.x*cell, oy+seg.y*cell, ox+(seg.x+1)*cell, oy+(seg.y+1)*cell);
+        grd.addColorStop(0, `hsla(${200 - t*80}, 90%, 60%, ${1 - t*0.5})`);
+        grd.addColorStop(1, `hsla(${280 - t*80}, 90%, 60%, ${1 - t*0.5})`);
+        ctx.fillStyle = grd;
+        roundRect(ctx, ox+seg.x*cell+2, oy+seg.y*cell+2, cell-4, cell-4, 5); ctx.fill();
+      });
+
+      // progress
+      const pct = Math.min(1, s.eaten / s.target);
+      ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fillRect(0, 0, W, 4);
+      ctx.fillStyle = '#22d3ee'; ctx.fillRect(0, 0, W * pct, 4);
+    },
+    cleanupExtra(){
+      if (onKey) window.removeEventListener('keydown', onKey);
+      if (onDown) api.cv.removeEventListener('pointerdown', onDown);
+      if (onUp) api.cv.removeEventListener('pointerup', onUp);
+    }
+  });
+  if (!api) return null;
+
+  function randFood(s){
+    while (true){
+      const f = { x: Math.floor(Math.random()*s.COLS), y: Math.floor(Math.random()*s.ROWS) };
+      if (!s.snake.some(x => x.x===f.x && x.y===f.y)) return f;
+    }
+  }
+
+  const dirs = { ArrowUp:{x:0,y:-1}, ArrowDown:{x:0,y:1}, ArrowLeft:{x:-1,y:0}, ArrowRight:{x:1,y:0}, KeyW:{x:0,y:-1}, KeyS:{x:0,y:1}, KeyA:{x:-1,y:0}, KeyD:{x:1,y:0} };
+  onKey = e => {
+    if (!api.isRunning()) return;
+    const d = dirs[e.code];
+    if (!d) return;
+    e.preventDefault();
+    const s = api.state.gameState;
+    if (d.x === -s.dir.x && d.y === -s.dir.y) return;
+    s.nextDir = d;
+  };
+  let sx=0, sy=0;
+  onDown = e => { sx = e.clientX; sy = e.clientY; };
+  onUp = e => {
+    if (!api.isRunning()) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
+    const s = api.state.gameState;
+    let d;
+    if (Math.abs(dx) > Math.abs(dy)) d = dx > 0 ? {x:1,y:0} : {x:-1,y:0};
+    else d = dy > 0 ? {x:0,y:1} : {x:0,y:-1};
+    if (d.x === -s.dir.x && d.y === -s.dir.y) return;
+    s.nextDir = d;
+  };
+  window.addEventListener('keydown', onKey);
+  api.cv.addEventListener('pointerdown', onDown);
+  api.cv.addEventListener('pointerup', onUp);
+  return api;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   GAME 5: BREAKOUT — more rows per level
+   ══════════════════════════════════════════════════════════════════════ */
+function initBreakout(){
+  let onKD, onKU, onMove;
+  const api = setupGame({
+    id:'breakout', name:'Block Breaker',
+    instructions:`Move paddle with mouse, touch, or <kbd>←</kbd> <kbd>→</kbd>`,
+    init(state, { W }){
+      const s = state.gameState;
+      s.COLS = 8;
+      s.ROWS = Math.min(3 + state.level, 8);
+      s.rows = [];
+      for (let r = 0; r < s.ROWS; r++)
+        for (let c = 0; c < s.COLS; c++)
+          s.rows.push({ row:r, col:c, alive:true, x:0, y:0, w:0, h:0 });
+      s.paddle = { x: W/2 - 55, y: 0, w: 110, h: 14 };
+      s.ball = { x: W/2, y: 0, r: 8, vx: 260 * (Math.random()<0.5?-1:1), vy: -320 };
+      s.keys = {};
+      state.score = 0;
+    },
+    draw(ctx, W, H, dt, state, api){
+      const s = state.gameState;
+      if (s.paddle.y === 0) s.paddle.y = H - 34;
+      if (s.ball.y === 0) s.ball.y = H / 2;
+      // layout bricks
+      const padX = W * 0.08, top = 60;
+      const bw = (W - padX*2) / s.COLS - 6;
+      const bh = 22;
+      for (const b of s.rows){
+        b.x = padX + b.col * (bw + 6);
+        b.y = top  + b.row * (bh + 6);
+        b.w = bw; b.h = bh;
+      }
+
+      if (api.isRunning()){
+        if (s.keys.ArrowLeft)  s.paddle.x -= 520 * dt;
+        if (s.keys.ArrowRight) s.paddle.x += 520 * dt;
+        s.paddle.x = Math.max(0, Math.min(W - s.paddle.w, s.paddle.x));
+
+        s.ball.x += s.ball.vx * dt;
+        s.ball.y += s.ball.vy * dt;
+        if (s.ball.x - s.ball.r < 0){ s.ball.x = s.ball.r; s.ball.vx *= -1; }
+        if (s.ball.x + s.ball.r > W){ s.ball.x = W - s.ball.r; s.ball.vx *= -1; }
+        if (s.ball.y - s.ball.r < 0){ s.ball.y = s.ball.r; s.ball.vy *= -1; }
+
+        if (s.ball.vy > 0 && s.ball.y + s.ball.r >= s.paddle.y && s.ball.y - s.ball.r <= s.paddle.y + s.paddle.h &&
+            s.ball.x >= s.paddle.x && s.ball.x <= s.paddle.x + s.paddle.w){
+          s.ball.y = s.paddle.y - s.ball.r;
+          const hit = (s.ball.x - (s.paddle.x + s.paddle.w/2)) / (s.paddle.w/2);
+          s.ball.vx = 340 * hit;
+          s.ball.vy = -Math.abs(s.ball.vy);
+        }
+        if (s.ball.y - s.ball.r > H){ api.gameOver(state.score); return; }
+
+        for (const b of s.rows){
+          if (!b.alive) continue;
+          if (s.ball.x + s.ball.r > b.x && s.ball.x - s.ball.r < b.x + b.w &&
+              s.ball.y + s.ball.r > b.y && s.ball.y - s.ball.r < b.y + b.h){
+            b.alive = false; state.score += 5;
+            const sc = document.getElementById('hudScore'); if (sc) sc.textContent = state.score;
+            const cx = b.x + b.w/2, cy = b.y + b.h/2;
+            if (Math.abs(s.ball.x - cx) / b.w > Math.abs(s.ball.y - cy) / b.h) s.ball.vx *= -1;
+            else s.ball.vy *= -1;
+            break;
+          }
+        }
+        if (s.rows.every(b => !b.alive)){ api.levelComplete(state.score + 100); return; }
+      }
+
+      clearBg(ctx, W, H, state.hue);
+      starfield(ctx, W, H, 0);
+      const colors = ['#22d3ee','#a855f7','#f472b6','#fb923c','#facc15','#34d399','#60a5fa','#f87171'];
+      for (const b of s.rows){
+        if (!b.alive) continue;
+        ctx.save(); ctx.shadowColor = colors[b.row % colors.length]; ctx.shadowBlur = 12;
+        ctx.fillStyle = colors[b.row % colors.length];
+        roundRect(ctx, b.x, b.y, b.w, b.h, 6); ctx.fill();
+        ctx.restore();
+      }
+      ctx.save(); ctx.shadowColor='#22d3ee'; ctx.shadowBlur=18; ctx.fillStyle='#22d3ee';
+      roundRect(ctx, s.paddle.x, s.paddle.y, s.paddle.w, s.paddle.h, 8); ctx.fill(); ctx.restore();
+      ctx.save(); ctx.shadowColor='#fff'; ctx.shadowBlur=20; ctx.fillStyle='#fff';
+      ctx.beginPath(); ctx.arc(s.ball.x, s.ball.y, s.ball.r, 0, Math.PI*2); ctx.fill(); ctx.restore();
+    },
+    cleanupExtra(){
+      if (onKD) window.removeEventListener('keydown', onKD);
+      if (onKU) window.removeEventListener('keyup', onKU);
+      if (onMove) api.cv.removeEventListener('pointermove', onMove);
+    }
+  });
+  if (!api) return null;
+
+  onKD = e => { if (['ArrowLeft','ArrowRight'].includes(e.code)){ e.preventDefault(); api.state.gameState.keys[e.code]=true; } };
+  onKU = e => { if (api.state.gameState.keys[e.code]) api.state.gameState.keys[e.code]=false; };
+  onMove = e => {
+    if (!api.isRunning()) return;
+    const s = api.state.gameState;
+    const r = api.cv.getBoundingClientRect();
+    const scale = api.W / r.width;
+    s.paddle.x = Math.max(0, Math.min(api.W - s.paddle.w, (e.clientX - r.left) * scale - s.paddle.w/2));
+  };
+  window.addEventListener('keydown', onKD);
+  window.addEventListener('keyup', onKU);
+  api.cv.addEventListener('pointermove', onMove);
+  return api;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   GAME 6: FLAPPY — narrower gaps and faster speed per level
+   ══════════════════════════════════════════════════════════════════════ */
+function initFlappy(){
+  let onKey, onTap;
+  const api = setupGame({
+    id:'flappy', name:'Jet Wings',
+    instructions:`Tap canvas or press <kbd>Space</kbd> to fly. Pass 5 pipes per level.`,
+    init(state){
+      const s = state.gameState;
+      s.bird = { x: 80, y: 200, vy: 0, r: 12 };
+      s.pipes = []; s.spawnT = 0;
+      s.speed = 160 + state.level * 14;
+      s.passed = 0;
+      s.target = 5;
+      s.gap = Math.max(110, 200 - state.level * 8);
+      state.score = 0;
+    },
+    draw(ctx, W, H, dt, state, api){
+      const s = state.gameState;
+      if (api.isRunning()){
+        s.bird.vy += 1400 * dt;
+        s.bird.y += s.bird.vy * dt;
+        if (s.bird.y - s.bird.r < 0){ s.bird.y = s.bird.r; s.bird.vy = 0; }
+        if (s.bird.y + s.bird.r > H - 40){ api.gameOver(state.score); return; }
+
+        s.spawnT -= dt;
+        if (s.spawnT <= 0){
+          const top = 40 + Math.random() * (H - 120 - s.gap);
+          s.pipes.push({ x: W + 20, w: 60, top, gap: s.gap, scored:false });
+          s.spawnT = Math.max(0.9, 1.5 - state.level * 0.05);
+        }
+
+        for (let i = s.pipes.length-1; i >= 0; i--){
+          const p = s.pipes[i];
+          p.x -= s.speed * dt;
+          if (p.x + p.w < 0){ s.pipes.splice(i,1); continue; }
+          if (s.bird.x + s.bird.r > p.x && s.bird.x - s.bird.r < p.x + p.w){
+            if (s.bird.y - s.bird.r < p.top || s.bird.y + s.bird.r > p.top + p.gap){ api.gameOver(state.score); return; }
+          }
+          if (!p.scored && p.x + p.w < s.bird.x){
+            p.scored = true; s.passed++; state.score++;
+            const sc = document.getElementById('hudScore'); if (sc) sc.textContent = state.score;
+            if (s.passed >= s.target){ api.levelComplete(state.score + 100); return; }
+          }
+        }
+      }
+
+      clearBg(ctx, W, H, state.hue);
+
+      for (const p of s.pipes){
+        ctx.save(); ctx.shadowColor='#22d3ee'; ctx.shadowBlur=12;
+        const grd = ctx.createLinearGradient(p.x,0,p.x+p.w,0);
+        grd.addColorStop(0,'#22d3ee'); grd.addColorStop(1,'#a855f7');
+        ctx.fillStyle = grd;
+        roundRect(ctx, p.x, 0, p.w, p.top, 8); ctx.fill();
+        roundRect(ctx, p.x, p.top + p.gap, p.w, H - p.top - p.gap, 8); ctx.fill();
+        ctx.restore();
+      }
+
+      ctx.fillStyle = 'rgba(15,15,25,0.95)'; ctx.fillRect(0, H-40, W, 40);
+      ctx.fillStyle = `hsl(${270 + state.hue*0.3}, 90%, 60%)`; ctx.fillRect(0, H-40, W, 2);
+
+      ctx.save(); ctx.shadowColor='#f472b6'; ctx.shadowBlur=20; ctx.fillStyle='#f472b6';
+      ctx.beginPath(); ctx.arc(s.bird.x, s.bird.y, s.bird.r, 0, Math.PI*2); ctx.fill(); ctx.restore();
+      ctx.fillStyle='#0c0c14';
+      ctx.beginPath(); ctx.arc(s.bird.x+4, s.bird.y-3, 3, 0, Math.PI*2); ctx.fill();
+
+      const pct = Math.min(1, s.passed / s.target);
+      ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fillRect(0, 0, W, 4);
+      ctx.fillStyle = '#22d3ee'; ctx.fillRect(0, 0, W * pct, 4);
+    },
+    cleanupExtra(){
+      if (onKey) window.removeEventListener('keydown', onKey);
+      if (onTap) api.cv.removeEventListener('pointerdown', onTap);
+    }
+  });
+  if (!api) return null;
+
+  const flap = () => {
+    if (!api.isRunning()) return;
+    api.state.gameState.bird.vy = -440;
+  };
+  onKey = e => { if (e.code==='Space' || e.code==='ArrowUp' || e.code==='KeyW'){ e.preventDefault(); flap(); } };
+  onTap = e => { e.preventDefault(); flap(); };
+  window.addEventListener('keydown', onKey);
+  api.cv.addEventListener('pointerdown', onTap);
+  return api;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   GAME 7: MEMORY — grid grows with level
+   ══════════════════════════════════════════════════════════════════════ */
+function initMemory(){
+  let onTap;
+  const api = setupGame({
+    id:'memory', name:'Neon Memory',
+    instructions:`Tap two cards to find a pair. Match all pairs to clear the level.`,
+    init(state){
+      const s = state.gameState;
+      const sizes = [[2,2],[3,2],[3,3],[4,3],[4,4]];
+      const idx = Math.min(sizes.length - 1, Math.floor((state.level - 1) / 2));
+      s.cols = sizes[idx][1]; s.rows = sizes[idx][0];
+      const total = s.cols * s.rows;
+      const pairsNeeded = Math.floor(total / 2);
+      const SYMBOLS = ['★','♦','♣','♥','✦','⚡','◆','▲','●','■'];
+      const chosen = SYMBOLS.slice(0, pairsNeeded);
+      let deck = [...chosen, ...chosen];
+      if (total % 2 === 1) deck.push('◈');
+      for (let i = deck.length-1; i > 0; i--){ const j = Math.floor(Math.random()*(i+1)); [deck[i],deck[j]]=[deck[j],deck[i]]; }
+      s.cards = deck.map((sym) => ({ s: sym, flipped:false, done:false }));
+      s.flipped = []; s.matched = 0; s.flips = 0; s.lockT = 0;
+      state.score = 0;
+    },
+    draw(ctx, W, H, dt, state, api){
+      const s = state.gameState;
+      if (s.lockT > 0){
+        s.lockT -= dt;
+        if (s.lockT <= 0){
+          const [a,b] = s.flipped;
+          if (a != null && b != null && s.cards[a].s !== s.cards[b].s){
+            s.cards[a].flipped = false; s.cards[b].flipped = false;
+          }
+          s.flipped = [];
+        }
+      }
+      clearBg(ctx, W, H, state.hue);
+
+      const size = Math.min(W, H) * 0.92;
+      const ox = (W - size)/2, oy = (H - size)/2;
+      const cw = size / s.cols, ch = size / s.rows;
+
+      for (let i = 0; i < s.cards.length; i++){
+        const c = s.cards[i];
+        const r = Math.floor(i / s.cols), col = i % s.cols;
+        const x = ox + col*cw, y = oy + r*ch;
+        const faceUp = c.flipped || c.done;
+        if (faceUp){
+          const grd = ctx.createLinearGradient(x, y, x+cw, y+ch);
+          grd.addColorStop(0, c.done ? 'rgba(34,211,238,0.35)' : 'rgba(168,85,247,0.85)');
+          grd.addColorStop(1, c.done ? 'rgba(168,85,247,0.35)' : 'rgba(34,211,238,0.85)');
+          ctx.fillStyle = grd;
+        } else ctx.fillStyle = '#242438';
+        roundRect(ctx, x+4, y+4, cw-8, ch-8, 10); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.stroke();
+
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        if (faceUp){
+          ctx.fillStyle = '#fff';
+          ctx.font = `${Math.floor(Math.min(cw, ch)*0.5)}px system-ui`;
+          ctx.fillText(c.s, x + cw/2, y + ch/2 + 2);
+        } else {
+          ctx.fillStyle = 'rgba(168,85,247,0.4)';
+          ctx.font = `${Math.floor(Math.min(cw, ch)*0.4)}px system-ui`;
+          ctx.fillText('?', x + cw/2, y + ch/2 + 2);
+        }
+      }
+    },
+    cleanupExtra(){
+      if (onTap) api.cv.removeEventListener('pointerdown', onTap);
+    }
+  });
+  if (!api) return null;
+
+  function flip(i){
+    const s = api.state.gameState;
+    if (s.lockT > 0) return;
+    if (s.flipped.length >= 2) return;
+    const c = s.cards[i];
+    if (!c || c.done || c.flipped) return;
+    c.flipped = true;
+    s.flipped.push(i);
+    s.flips++;
+    if (s.flipped.length === 2){
+      const [a,b] = s.flipped;
+      if (s.cards[a].s === s.cards[b].s){
+        s.cards[a].done = true; s.cards[b].done = true;
+        s.matched += 2; s.flipped = [];
+        if (s.matched >= s.cards.length - (s.cards.length % 2)){
+          api.levelComplete(Math.max(0, 500 - s.flips * 10));
+        }
+      } else s.lockT = 0.9;
+    }
+  }
+
+  onTap = e => {
+    if (!api.isRunning()) return;
+    const s = api.state.gameState;
+    const r = api.cv.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio||1,2);
+    const x = (e.clientX - r.left) * (api.cv.width/r.width) / dpr;
+    const y = (e.clientY - r.top)  * (api.cv.height/r.height)/ dpr;
+    const size = Math.min(api.W, api.H) * 0.92;
+    const ox = (api.W - size)/2, oy = (api.H - size)/2;
+    const cw = size / s.cols, ch = size / s.rows;
+    if (x < ox || x > ox + size || y < oy || y > oy + size) return;
+    const col = Math.floor((x - ox) / cw);
+    const row = Math.floor((y - oy) / ch);
+    flip(row * s.cols + col);
+  };
+  api.cv.addEventListener('pointerdown', onTap);
+  return api;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   GAME 8: TIC TAC TOE — AI gets smarter each level
+   ══════════════════════════════════════════════════════════════════════ */
+function initTicTac(){
+  let onTap;
+  const api = setupGame({
+    id:'tictac', name:'Tic Tac Toe',
+    instructions:`Tap a cell to place your ✕. Beat the AI to clear the level.`,
+    init(state){
+      const s = state.gameState;
+      s.board = Array(9).fill('');
+      s.done = false;
+      state.score = 0;
+    },
+    draw(ctx, W, H, dt, state, api){
+      const s = state.gameState;
+      clearBg(ctx, W, H, state.hue);
+      const size = Math.min(W, H) * 0.85;
+      const ox = (W - size)/2, oy = (H - size)/2;
+      const cw = size/3, ch = size/3;
+
+      ctx.strokeStyle = 'rgba(168,85,247,0.4)'; ctx.lineWidth = 2;
+      for (let i = 1; i < 3; i++){
+        ctx.beginPath(); ctx.moveTo(ox + i*size/3, oy); ctx.lineTo(ox + i*size/3, oy+size); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(ox, oy + i*size/3); ctx.lineTo(ox+size, oy + i*size/3); ctx.stroke();
+      }
+
+      for (let i = 0; i < 9; i++){
+        const v = s.board[i];
+        if (!v) continue;
+        const r = Math.floor(i/3), c = i%3;
+        const x = ox + c*cw + cw/2, y = oy + r*ch + ch/2;
+        ctx.fillStyle = v === 'X' ? '#22d3ee' : '#a855f7';
+        ctx.font = `bold ${Math.floor(Math.min(cw, ch)*0.55)}px "Space Grotesk", system-ui`;
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.shadowColor = v === 'X' ? '#22d3ee' : '#a855f7'; ctx.shadowBlur = 20;
+        ctx.fillText(v, x, y + 3); ctx.shadowBlur = 0;
+      }
+    },
+    cleanupExtra(){ if (onTap) api.cv.removeEventListener('pointerdown', onTap); }
+  });
+  if (!api) return null;
+
+  const LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  function checkWin(b){
+    for (const [a,c,d] of LINES) if (b[a] && b[a] === b[c] && b[a] === b[d]) return b[a];
+    return b.every(x => x) ? 'draw' : '';
+  }
+  function aiMove(s){
+    const level = api.state.level;
+    // Always: win if possible; block if needed
+    for (const [a,c,d] of LINES){
+      const t = [s.board[a], s.board[c], s.board[d]];
+      if (t.filter(x=>x==='O').length === 2 && t.includes('')) return [a,c,d][t.indexOf('')];
+    }
+    for (const [a,c,d] of LINES){
+      const t = [s.board[a], s.board[c], s.board[d]];
+      if (t.filter(x=>x==='X').length === 2 && t.includes('')) return [a,c,d][t.indexOf('')];
+    }
+    if (!s.board[4]) return 4;
+    const corners = [0,2,6,8].filter(i => !s.board[i]);
+    if (corners.length) return corners[Math.floor(Math.random()*corners.length)];
+    const free = s.board.map((v,i)=>v?-1:i).filter(i=>i>=0);
+    return free[Math.floor(Math.random()*free.length)];
+  }
+  function move(i){
+    const s = api.state.gameState;
+    if (s.done || s.board[i]) return;
+    s.board[i] = 'X';
+    let w = checkWin(s.board);
+    if (w){ finish(w); return; }
+    setTimeout(() => {
+      if (s.done) return;
+      const ai = aiMove(s);
+      s.board[ai] = 'O';
+      w = checkWin(s.board);
+      if (w) finish(w);
+    }, 220);
+  }
+  function finish(w){
+    const s = api.state.gameState;
+    s.done = true;
+    if (w === 'X') api.levelComplete(300 + api.state.level * 50);
+    else if (w === 'draw') api.levelComplete(150);
+    else api.gameOver(50);
+  }
+
+  onTap = e => {
+    if (!api.isRunning()) return;
+    const r = api.cv.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio||1,2);
+    const x = (e.clientX - r.left) * (api.cv.width/r.width) / dpr;
+    const y = (e.clientY - r.top)  * (api.cv.height/r.height)/ dpr;
+    const size = Math.min(api.W, api.H) * 0.85;
+    const ox = (api.W - size)/2, oy = (api.H - size)/2;
+    if (x < ox || x > ox + size || y < oy || y > oy + size) return;
+    const c = Math.floor((x - ox) / (size/3));
+    const rw = Math.floor((y - oy) / (size/3));
+    move(rw*3 + c);
+  };
+  api.cv.addEventListener('pointerdown', onTap);
+  return api;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   GAME 9: PONG — AI faster per level
+   ══════════════════════════════════════════════════════════════════════ */
+function initPong(){
+  let onKD, onKU, onMove;
+  const api = setupGame({
+    id:'pong', name:'Neon Pong',
+    instructions:`Move with mouse, touch, or <kbd>↑</kbd> <kbd>↓</kbd>. First to 5 wins the level.`,
+    init(state, { W, H }){
+      const s = state.gameState;
+      const ph = H * 0.22, pw = 12;
+      s.p = { x: 16, y: H/2 - ph/2, w: pw, h: ph };
+      s.ai = { x: W - 28, y: H/2 - ph/2, w: pw, h: ph };
+      s.ball = { x: W/2, y: H/2, r: 8, vx: 300 * (Math.random()<0.5?-1:1), vy: 180 * (Math.random()<0.5?-1:1) };
+      s.ps = 0; s.cs = 0;
+      s.aiSpeed = 300 + state.level * 50;
+      state.score = 0;
+    },
+    draw(ctx, W, H, dt, state, api){
+      const s = state.gameState;
+      if (api.isRunning()){
+        if (s.keys?.ArrowUp)   s.p.y -= 460 * dt;
+        if (s.keys?.ArrowDown) s.p.y += 460 * dt;
+        s.p.y = Math.max(0, Math.min(H - s.p.h, s.p.y));
+
+        const target = s.ball.y - s.ai.h/2;
+        s.ai.y += Math.sign(target - s.ai.y) * Math.min(Math.abs(target - s.ai.y), s.aiSpeed * dt);
+        s.ai.y = Math.max(0, Math.min(H - s.ai.h, s.ai.y));
+
+        s.ball.x += s.ball.vx * dt;
+        s.ball.y += s.ball.vy * dt;
+        if (s.ball.y - s.ball.r < 0){ s.ball.y = s.ball.r; s.ball.vy *= -1; }
+        if (s.ball.y + s.ball.r > H){ s.ball.y = H - s.ball.r; s.ball.vy *= -1; }
+
+        if (s.ball.x - s.ball.r < s.p.x + s.p.w && s.ball.x + s.ball.r > s.p.x &&
+            s.ball.y > s.p.y && s.ball.y < s.p.y + s.p.h && s.ball.vx < 0){
+          s.ball.x = s.p.x + s.p.w + s.ball.r;
+          s.ball.vx = Math.abs(s.ball.vx) * 1.03;
+          s.ball.vy += (s.ball.y - (s.p.y + s.p.h/2)) * 6;
+        }
+        if (s.ball.x + s.ball.r > s.ai.x && s.ball.x - s.ball.r < s.ai.x + s.ai.w &&
+            s.ball.y > s.ai.y && s.ball.y < s.ai.y + s.ai.h && s.ball.vx > 0){
+          s.ball.x = s.ai.x - s.ball.r;
+          s.ball.vx = -Math.abs(s.ball.vx) * 1.03;
+          s.ball.vy += (s.ball.y - (s.ai.y + s.ai.h/2)) * 6;
+        }
+        const max = 720;
+        s.ball.vx = Math.max(-max, Math.min(max, s.ball.vx));
+        s.ball.vy = Math.max(-max, Math.min(max, s.ball.vy));
+
+        if (s.ball.x < -20){ s.cs++; state.score = s.ps * 100; resetBall(s, W, H, 1); }
+        if (s.ball.x > W + 20){ s.ps++; state.score = s.ps * 100; resetBall(s, W, H, -1); }
+        const sc = document.getElementById('hudScore'); if (sc) sc.textContent = state.score;
+
+        if (s.ps >= 5){ api.levelComplete(500 + state.level * 50); return; }
+        if (s.cs >= 5){ api.gameOver(state.score); return; }
+      }
+
+      clearBg(ctx, W, H, state.hue);
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.setLineDash([6,10]);
+      ctx.beginPath(); ctx.moveTo(W/2, 0); ctx.lineTo(W/2, H); ctx.stroke(); ctx.setLineDash([]);
+
+      // scores
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.font = `bold ${Math.floor(H*0.15)}px "Space Grotesk", system-ui`;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(s.ps, W*0.25, H*0.2);
+      ctx.fillText(s.cs, W*0.75, H*0.2);
+
+      ctx.save(); ctx.shadowColor='#22d3ee'; ctx.shadowBlur=18; ctx.fillStyle='#22d3ee';
+      roundRect(ctx, s.p.x, s.p.y, s.p.w, s.p.h, 6); ctx.fill(); ctx.restore();
+      ctx.save(); ctx.shadowColor='#a855f7'; ctx.shadowBlur=18; ctx.fillStyle='#a855f7';
+      roundRect(ctx, s.ai.x, s.ai.y, s.ai.w, s.ai.h, 6); ctx.fill(); ctx.restore();
+      ctx.save(); ctx.shadowColor='#fff'; ctx.shadowBlur=20; ctx.fillStyle='#fff';
+      ctx.beginPath(); ctx.arc(s.ball.x, s.ball.y, s.ball.r, 0, Math.PI*2); ctx.fill(); ctx.restore();
+    },
+    cleanupExtra(){
+      if (onKD) window.removeEventListener('keydown', onKD);
+      if (onKU) window.removeEventListener('keyup', onKU);
+      if (onMove) api.cv.removeEventListener('pointermove', onMove);
+    }
+  });
+  if (!api) return null;
+
+  function resetBall(s, W, H, dir){
+    s.ball.x = W/2; s.ball.y = H/2;
+    s.ball.vx = 300 * dir;
+    s.ball.vy = 180 * (Math.random()<0.5?-1:1);
+  }
+
+  api.state.gameState.keys = {};
+  onKD = e => { if (e.code==='ArrowUp'||e.code==='ArrowDown'){ e.preventDefault(); api.state.gameState.keys[e.code]=true; } };
+  onKU = e => { if (api.state.gameState.keys[e.code]) api.state.gameState.keys[e.code]=false; };
+  onMove = e => {
+    if (!api.isRunning()) return;
+    const s = api.state.gameState;
+    const r = api.cv.getBoundingClientRect();
+    const scale = api.H / r.height;
+    s.p.y = Math.max(0, Math.min(api.H - s.p.h, (e.clientY - r.top) * scale - s.p.h/2));
+  };
+  window.addEventListener('keydown', onKD);
+  window.addEventListener('keyup', onKU);
+  api.cv.addEventListener('pointermove', onMove);
+  return api;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   GAME 10: SIMON — sequence grows per level
+   ══════════════════════════════════════════════════════════════════════ */
+function initSimon(){
+  let onTap;
+  const api = setupGame({
+    id:'simon', name:'Signal Simon',
+    instructions:`Watch the sequence, then repeat by tapping the pads. Longer sequences each level.`,
+    init(state){
+      const s = state.gameState;
+      s.seq = []; s.input = []; s.showing = false;
+      s.flashUntil = 0; s.flashIdx = -1;
+      s.target = 3 + state.level;
+      s.reached = 0;
+      state.score = 0;
+      nextSeq(s, state);
+    },
+    draw(ctx, W, H, dt, state, api){
+      const s = state.gameState;
+      clearBg(ctx, W, H, state.hue);
+      const now = performance.now();
+      const COLORS = ['#22d3ee','#a855f7','#f472b6','#facc15'];
+      const OFFS = [{dx:-1,dy:-1},{dx:1,dy:-1},{dx:-1,dy:1},{dx:1,dy:1}];
+      const size = Math.min(W, H) * 0.8;
+      const half = size / 2;
+      const ox = (W - size)/2, oy = (H - size)/2;
+      for (let i = 0; i < 4; i++){
+        const cx = ox + half + OFFS[i].dx * half/2;
+        const cy = oy + half + OFFS[i].dy * half/2;
+        const r = half/2 - 6;
+        const on = s.flashIdx === i && now < s.flashUntil;
+        ctx.save();
+        ctx.shadowColor = COLORS[i]; ctx.shadowBlur = on ? 40 : 12;
+        ctx.fillStyle = on ? COLORS[i] : 'rgba(255,255,255,0.06)';
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+        if (!on){
+          ctx.strokeStyle = COLORS[i]; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
+        }
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.font = '13px Inter, system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText(s.showing ? 'Watch…' : 'Your turn', W/2, H - 16);
+      const pct = Math.min(1, s.reached / s.target);
+      ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fillRect(0, 0, W, 4);
+      ctx.fillStyle = '#22d3ee'; ctx.fillRect(0, 0, W * pct, 4);
+    },
+    cleanupExtra(){ if (onTap) api.cv.removeEventListener('pointerdown', onTap); }
+  });
+  if (!api) return null;
+
+  function nextSeq(s, state){
+    s.seq.push(Math.floor(Math.random()*4));
+    s.input = [];
+    s.showing = true;
+    s.reached = s.seq.length - 1;
+    playSeq(s);
+  }
+  function playSeq(s){
+    let i = 0;
+    s.flashIdx = -1;
+    const step = () => {
+      if (!api.isRunning()) return;
+      if (i >= s.seq.length){ s.showing = false; s.flashIdx = -1; return; }
+      s.flashIdx = s.seq[i];
+      s.flashUntil = performance.now() + 380;
+      setTimeout(() => { s.flashIdx = -1; i++; setTimeout(step, 220); }, 420);
+    };
+    setTimeout(step, 500);
+  }
+
+  function tap(i){
+    const s = api.state.gameState;
+    if (s.showing || !api.isRunning()) return;
+    s.flashIdx = i; s.flashUntil = performance.now() + 200;
+    setTimeout(() => { s.flashIdx = -1; }, 210);
+    s.input.push(i);
+    const idx = s.input.length - 1;
+    if (s.input[idx] !== s.seq[idx]){ api.gameOver(api.state.score); return; }
+    if (s.input.length === s.seq.length){
+      api.state.score += 50;
+      const sc = document.getElementById('hudScore'); if (sc) sc.textContent = api.state.score;
+      if (s.seq.length >= s.target) api.levelComplete(api.state.score + 200);
+      else setTimeout(() => { if (api.isRunning()) nextSeq(s, api.state); }, 650);
+    }
+  }
+
+  onTap = e => {
+    if (!api.isRunning()) return;
+    const s = api.state.gameState;
+    const r = api.cv.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio||1,2);
+    const x = (e.clientX - r.left) * (api.cv.width/r.width) / dpr;
+    const y = (e.clientY - r.top)  * (api.cv.height/r.height)/ dpr;
+    const size = Math.min(api.W, api.H) * 0.8;
+    const half = size / 2;
+    const ox = (api.W - size)/2, oy = (api.H - size)/2;
+    const OFFS = [{dx:-1,dy:-1},{dx:1,dy:-1},{dx:-1,dy:1},{dx:1,dy:1}];
+    for (let i = 0; i < 4; i++){
+      const cx = ox + half + OFFS[i].dx * half/2;
+      const cy = oy + half + OFFS[i].dy * half/2;
+      const r = half/2 - 6;
+      if ((x-cx)**2 + (y-cy)**2 <= r*r){ tap(i); return; }
+    }
+  };
+  api.cv.addEventListener('pointerdown', onTap);
+  return api;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   MAP + ROUTER
+   ══════════════════════════════════════════════════════════════════════ */
+const INIT_MAP = {
+  runner: initRunner, puzzle15: initPuzzle, sweeper: initSweeper, snake: initSnake,
+  breakout: initBreakout, flappy: initFlappy, memory: initMemory, tictac: initTicTac,
+  pong: initPong, simon: initSimon,
+};
+
+let activeGame = null;
+function render(){
+  try {
+    if (activeGame && activeGame.cleanup){ try { activeGame.cleanup(); } catch(e){} activeGame = null; }
+
+    const hash = location.hash || '#/';
+    const path = hash.replace(/^#/, '');
+    const app = document.getElementById('app');
+    const parts = path.split('/').filter(Boolean);
+
+    let html;
+    if (parts.length === 0)                     html = pageHome();
+    else if (parts[0] === 'games' && !parts[1]) html = pageGames();
+    else if (parts[0] === 'game' && parts[1])   html = pageGameDetail(parts[1]);
+    else if (parts[0] === 'trending')           html = pageTrending();
+    else if (parts[0] === 'new')                html = pageNew();
+    else if (parts[0] === 'wishlist')           html = pageWishlist();
+    else if (parts[0] === 'library')            html = pageLibrary();
+    else if (parts[0] === 'play' && !parts[1])  html = pageArcade();
+    else if (parts[0] === 'play' && parts[1])   html = pageArcadeGame(parts[1]);
+    else if (parts[0] === 'about')              html = pageAbout();
+    else if (parts[0] === 'legal')              html = pageLegal();
+    else                                        html = page404();
+
+    app.innerHTML = html;
+
+    if (parts[0] === 'games' && !parts[1]) initGamesPage();
+    if (parts[0] === 'game' && parts[1]) initGameDetailExtras();
+    if (parts[0] === 'play' && parts[1]){
+      const fn = INIT_MAP[parts[1]];
+      if (fn){
+        // Force layout to settle before game init reads sizes
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            try {
+              activeGame = fn();
+              if (!activeGame) showError('Game failed to start. Reload the page.');
+            } catch(err){
+              console.error('Game init failed:', err);
+              showError('Failed to start game: ' + err.message);
+            }
+          });
+        });
+      } else showError('Unknown game: ' + parts[1]);
+    }
+
+    document.querySelectorAll('.nav-link').forEach(a => {
+      a.classList.toggle('active', a.dataset.route === ('/' + (parts[0] || '')));
+    });
+
+    window.scrollTo({ top: 0, behavior: 'auto' });
+
+    // close mobile menu
+    const mm = document.getElementById('mobileMenu');
+    if (mm){ mm.style.display = 'none'; }
+
+  } catch (err){
+    console.error('Render error:', err);
+    showError('Something went wrong: ' + err.message);
+  }
+}
+
+function initGamesPage(){
+  const grid = document.getElementById('grid'); if (!grid) return;
+  const empty = document.getElementById('empty');
+  const s = document.getElementById('fSearch');
+  const g = document.getElementById('fGenre');
+  const o = document.getElementById('fSort');
+
+  function apply(){
+    let list = GAMES.slice();
+    const q = s.value.trim().toLowerCase();
+    if (q) list = list.filter(x => x.title.toLowerCase().includes(q) || x.genre.toLowerCase().includes(q) || x.dev.toLowerCase().includes(q));
+    if (g.value) list = list.filter(x => x.genre === g.value);
+    switch (o.value){
+      case 'rating': list.sort((a,b) => b.rating - a.rating); break;
+      case 'newest': list.sort((a,b) => new Date(b.release) - new Date(a.release)); break;
+      case 'az':     list.sort((a,b) => a.title.localeCompare(b.title)); break;
+      default:       list.sort((a,b) => (b.trending?1:0) - (a.trending?1:0));
+    }
+    grid.innerHTML = list.map(GameCard).join('');
+    empty.classList.toggle('hidden', list.length > 0);
+  }
+
+  grid.innerHTML = Array.from({length:8}).map(() =>
+    `<div class="rounded-2xl overflow-hidden" style="background:#12121d;border:1px solid rgba(255,255,255,0.05)">
+       <div class="skeleton" style="aspect-ratio:16/10"></div>
+       <div class="p-4 space-y-2"><div class="skeleton h-4 w-2/3 rounded"></div><div class="skeleton h-3 w-1/3 rounded"></div></div>
+     </div>`).join('');
+  setTimeout(apply, 200);
+
+  let t;
+  s.addEventListener('input', () => { clearTimeout(t); t = setTimeout(apply, 180); });
+  g.addEventListener('change', apply);
+  o.addEventListener('change', apply);
+}
+
+function initGameDetailExtras(){
+  const btn = document.querySelector('[data-lib]');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const id = btn.dataset.lib;
+    const added = toggleList(LS.library, id);
+    const g = GAMES.find(x => x.id === id);
+    toast(added ? `Added "${g ? g.title : 'game'}" to library` : `Removed from library`);
+    btn.textContent = added ? '✓ In Library' : '+ Add to Library';
+  });
+}
+
+/* INIT */
+document.getElementById('year').textContent = new Date().getFullYear();
+document.getElementById('menuBtn').addEventListener('click', () => {
+  const mm = document.getElementById('mobileMenu');
+  mm.style.display = mm.style.display === 'none' || !mm.style.display ? 'block' : 'none';
+});
+document.getElementById('navSearch').addEventListener('keydown', e => {
+  if (e.key === 'Enter'){
+    const q = e.target.value.trim();
+    location.hash = '#/games';
+    setTimeout(() => {
+      const s = document.getElementById('fSearch');
+      if (s){ s.value = q; s.dispatchEvent(new Event('input')); }
+    }, 60);
+    e.target.value = '';
+  }
+});
+window.addEventListener('hashchange', render);
+updateWishBadge();
+render();
+</script>
+</body>
+</html>
